@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: 10.0.109
+      - run: dotnet restore EmbeddedSass.Net.slnx
+      - run: dotnet build EmbeddedSass.Net.slnx --configuration Release --no-restore --disable-build-servers -m:1
+      - run: dotnet test EmbeddedSass.Net.slnx --configuration Release --no-build -m:1
+      - run: dotnet pack src/EmbeddedSass.Net/EmbeddedSass.Net.csproj --configuration Release --no-build --output artifacts/packages
+      - run: dotnet pack src/EmbeddedSass.Net.DependencyInjection/EmbeddedSass.Net.DependencyInjection.csproj --configuration Release --no-build --output artifacts/packages
+      - run: dotnet pack src/EmbeddedSass.Net.Compiler/EmbeddedSass.Net.Compiler.csproj --configuration Release --no-build --output artifacts/packages

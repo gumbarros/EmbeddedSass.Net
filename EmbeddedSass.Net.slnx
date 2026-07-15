@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EmbeddedSass.Net/EmbeddedSass.Net.csproj" />
+    <Project Path="src/EmbeddedSass.Net.DependencyInjection/EmbeddedSass.Net.DependencyInjection.csproj" />
+    <Project Path="src/EmbeddedSass.Net.Compiler/EmbeddedSass.Net.Compiler.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EmbeddedSass.Net.Tests/EmbeddedSass.Net.Tests.csproj" />
+    <Project Path="tests/EmbeddedSass.Net.Protocol.Tests/EmbeddedSass.Net.Protocol.Tests.csproj" />
+    <Project Path="tests/EmbeddedSass.Net.IntegrationTests/EmbeddedSass.Net.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/github/">
+    <File Path=".github\workflows\ci.yml" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/EmbeddedSass.Net.Sample.Console/EmbeddedSass.Net.Sample.Console.csproj" />
+    <Project Path="samples/EmbeddedSass.Net.Sample.DependencyInjection/EmbeddedSass.Net.Sample.DependencyInjection.csproj" />
+  </Folder>
+</Solution>

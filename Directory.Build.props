@@ -1,0 +1,35 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix>alpha.1</VersionSuffix>
+    <Authors>EmbeddedSass.Net contributors</Authors>
+    <RepositoryUrl>https://github.com/gumbarros/EmbeddedSass.Net</RepositoryUrl>
+    <PackageTags>sass;scss;dart-sass;embedded-sass</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnableSourceControlManagerQueries Condition="!Exists('$(MSBuildThisFileDirectory).git/HEAD')">false</EnableSourceControlManagerQueries>
+    <EnableSourceLink Condition="!Exists('$(MSBuildThisFileDirectory).git/HEAD')">false</EnableSourceLink>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" />
+    <None Include="$(MSBuildThisFileDirectory)THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/EmbeddedSass.Net.DependencyInjection/EmbeddedSass.Net.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\EmbeddedSass.Net.Compiler\EmbeddedSass.Net.Compiler.csproj" />
+  </ItemGroup>
+</Project>

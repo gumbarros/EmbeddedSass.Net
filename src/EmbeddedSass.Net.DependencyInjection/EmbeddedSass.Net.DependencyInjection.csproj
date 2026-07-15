@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>EmbeddedSass.Net.DependencyInjection</AssemblyName>
+    <RootNamespace>EmbeddedSass.Net.DependencyInjection</RootNamespace>
+    <Description>Dependency injection and options integration for EmbeddedSass.Net.</Description>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../EmbeddedSass.Net/EmbeddedSass.Net.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+</Project>

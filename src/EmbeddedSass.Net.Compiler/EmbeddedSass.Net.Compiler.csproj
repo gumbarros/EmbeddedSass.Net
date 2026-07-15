@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>EmbeddedSass.Net.Compiler</AssemblyName>
+    <RootNamespace>EmbeddedSass.Net.Compiler</RootNamespace>
+    <Description>Bundled Dart Sass compilers for EmbeddedSass.Net on Windows, macOS, and Linux.</Description>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../EmbeddedSass.Net/EmbeddedSass.Net.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="runtimes/**/*"
+          Pack="true"
+          PackagePath="" />
+    <None Update="runtimes/$(NETCoreSdkPortableRuntimeIdentifier)/native/EmbeddedSass.Net.Compiler/*"
+          Link="EmbeddedSass.Net.Compiler/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Update="dart-sass-LICENSE"
+          Pack="true"
+          PackagePath="licenses/" />
+  </ItemGroup>
+</Project>
