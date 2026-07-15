@@ -7,10 +7,10 @@ using EmbeddedSass.Net.Internal.Protocol;
 
 namespace EmbeddedSass.Net.Protocol.Tests;
 
-public sealed class CompilerRuntimeTests
+public sealed class EmbeddedCompilerProcessTests
 {
     [Fact]
-    public async Task HandshakeCompileAndLogsUseEmbeddedSassDomainTypes()
+    public async Task HandshakeCompilationAndLogsUseEmbeddedSassDomainTypes()
     {
         var launcher = new ScriptedProcessLauncher();
         launcher.Enqueue(async (endpoint, cancellationToken) =>
@@ -245,17 +245,45 @@ public sealed class CompilerRuntimeTests
         Assert.Contains("protobuf", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task ConcurrentDisposalWaitsForResourceTeardown()
+    {
+        var launcher = new GatedDisposalProcessLauncher();
+        launcher.Enqueue(async (endpoint, cancellationToken) =>
+        {
+            await endpoint.CompleteHandshakeAsync(cancellationToken);
+            await endpoint.DrainUntilEofAsync(cancellationToken);
+        });
+        CompilerOptionsSnapshot options = CreateOptions();
+        EmbeddedCompilerProcess compiler = await EmbeddedCompilerProcess.StartAsync(
+            options,
+            launcher,
+            CancellationToken.None);
+
+        Task firstDisposal = compiler.DisposeAsync().AsTask();
+        await launcher.DisposalStarted.Task;
+        Task secondDisposal = compiler.DisposeAsync().AsTask();
+
+        Assert.False(secondDisposal.IsCompleted);
+
+        launcher.AllowDisposal();
+        await Task.WhenAll(firstDisposal, secondDisposal);
+    }
+
     private static SassCompilerConnection CreateConnection(
         ScriptedProcessLauncher launcher,
         int maximumConcurrentCompilations = 4)
     {
-        CompilerOptionsSnapshot options = CompilerOptionsSnapshot.Create(new SassCompilerOptions
+        CompilerOptionsSnapshot options = CreateOptions(maximumConcurrentCompilations);
+        return new SassCompilerConnection(options, launcher);
+    }
+
+    private static CompilerOptionsSnapshot CreateOptions(int maximumConcurrentCompilations = 4) =>
+        CompilerOptionsSnapshot.Create(new SassCompilerOptions
         {
             CompilerPath = Path.Combine(Path.GetPathRoot(Environment.CurrentDirectory)!, "scripted", "dart-sass"),
             MaxConcurrentCompilations = maximumConcurrentCompilations,
             HandshakeTimeout = TimeSpan.FromSeconds(2),
             ShutdownGracePeriod = TimeSpan.FromSeconds(2)
         });
-        return new SassCompilerConnection(options, launcher);
-    }
 }

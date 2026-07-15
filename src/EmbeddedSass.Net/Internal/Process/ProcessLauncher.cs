@@ -57,33 +57,26 @@ internal sealed class ProcessLauncher : IProcessLauncher
         }
     }
 
-    private sealed class CompilerProcess : ICompilerProcess
+    private sealed class CompilerProcess(System.Diagnostics.Process process) : ICompilerProcess
     {
-        private readonly System.Diagnostics.Process _process;
+        public Stream StandardInput => process.StandardInput.BaseStream;
 
-        public CompilerProcess(System.Diagnostics.Process process)
-        {
-            _process = process;
-        }
+        public Stream StandardOutput => process.StandardOutput.BaseStream;
 
-        public Stream StandardInput => _process.StandardInput.BaseStream;
+        public Stream StandardError => process.StandardError.BaseStream;
 
-        public Stream StandardOutput => _process.StandardOutput.BaseStream;
-
-        public Stream StandardError => _process.StandardError.BaseStream;
-
-        public int? ExitCode => _process.HasExited ? _process.ExitCode : null;
+        public int? ExitCode => process.HasExited ? process.ExitCode : null;
 
         public Task WaitForExitAsync(CancellationToken cancellationToken = default) =>
-            _process.WaitForExitAsync(cancellationToken);
+            process.WaitForExitAsync(cancellationToken);
 
         public void Kill()
         {
             try
             {
-                if (!_process.HasExited)
+                if (!process.HasExited)
                 {
-                    _process.Kill(entireProcessTree: true);
+                    process.Kill(entireProcessTree: true);
                 }
             }
             catch (InvalidOperationException)
@@ -94,7 +87,7 @@ internal sealed class ProcessLauncher : IProcessLauncher
 
         public ValueTask DisposeAsync()
         {
-            _process.Dispose();
+            process.Dispose();
             return ValueTask.CompletedTask;
         }
     }

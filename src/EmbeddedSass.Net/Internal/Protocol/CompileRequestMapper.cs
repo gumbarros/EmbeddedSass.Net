@@ -84,7 +84,7 @@ internal static class CompileRequestMapper
         IReadOnlyList<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
-        foreach (string? path in paths)
+        foreach (var path in paths)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
             target.Importers.Add(new InboundMessage.Types.CompileRequest.Types.Importer

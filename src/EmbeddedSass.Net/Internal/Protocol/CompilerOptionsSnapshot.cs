@@ -1,21 +1,53 @@
 namespace EmbeddedSass.Net.Internal.Protocol;
 
-internal sealed record CompilerOptionsSnapshot(
-    string CompilerPath,
-    IReadOnlyList<string> CompilerArguments,
-    int MaxConcurrentCompilations,
-    int MaxPacketBytes,
-    int MaxPendingWrites,
-    int MaxPendingLogEvents,
-    int MaxCapturedStderrBytes,
-    TimeSpan HandshakeTimeout,
-    TimeSpan ShutdownGracePeriod)
+internal sealed class CompilerOptionsSnapshot
 {
+    private CompilerOptionsSnapshot(
+        string compilerPath,
+        IReadOnlyList<string> compilerArguments,
+        int maxConcurrentCompilations,
+        int maxPacketBytes,
+        int maxPendingWrites,
+        int maxPendingLogEvents,
+        int maxCapturedStderrBytes,
+        TimeSpan handshakeTimeout,
+        TimeSpan shutdownGracePeriod)
+    {
+        CompilerPath = compilerPath;
+        CompilerArguments = compilerArguments;
+        MaxConcurrentCompilations = maxConcurrentCompilations;
+        MaxPacketBytes = maxPacketBytes;
+        MaxPendingWrites = maxPendingWrites;
+        MaxPendingLogEvents = maxPendingLogEvents;
+        MaxCapturedStderrBytes = maxCapturedStderrBytes;
+        HandshakeTimeout = handshakeTimeout;
+        ShutdownGracePeriod = shutdownGracePeriod;
+    }
+
+    public string CompilerPath { get; }
+
+    public IReadOnlyList<string> CompilerArguments { get; }
+
+    public int MaxConcurrentCompilations { get; }
+
+    public int MaxPacketBytes { get; }
+
+    public int MaxPendingWrites { get; }
+
+    public int MaxPendingLogEvents { get; }
+
+    public int MaxCapturedStderrBytes { get; }
+
+    public TimeSpan HandshakeTimeout { get; }
+
+    public TimeSpan ShutdownGracePeriod { get; }
+
     public static CompilerOptionsSnapshot Create(SassCompilerOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.CompilerPath);
         ArgumentNullException.ThrowIfNull(options.CompilerArguments);
+
         if (options.CompilerArguments.Any(static argument => argument is null))
         {
             throw new ArgumentException(
@@ -30,10 +62,21 @@ internal sealed record CompilerOptionsSnapshot(
                 nameof(options));
         }
 
-        ValidatePositive(options.MaxConcurrentCompilations, nameof(options.MaxConcurrentCompilations));
-        ValidatePositive(options.MaxPacketBytes, nameof(options.MaxPacketBytes));
-        ValidatePositive(options.MaxPendingWrites, nameof(options.MaxPendingWrites));
-        ValidatePositive(options.MaxPendingLogEvents, nameof(options.MaxPendingLogEvents));
+        ValidatePositive(
+            options.MaxConcurrentCompilations,
+            nameof(options.MaxConcurrentCompilations));
+
+        ValidatePositive(
+            options.MaxPacketBytes,
+            nameof(options.MaxPacketBytes));
+
+        ValidatePositive(
+            options.MaxPendingWrites,
+            nameof(options.MaxPendingWrites));
+
+        ValidatePositive(
+            options.MaxPendingLogEvents,
+            nameof(options.MaxPendingLogEvents));
 
         if (options.MaxCapturedStderrBytes < 0)
         {
@@ -42,8 +85,13 @@ internal sealed record CompilerOptionsSnapshot(
                 "MaxCapturedStderrBytes cannot be negative.");
         }
 
-        ValidatePositive(options.HandshakeTimeout, nameof(options.HandshakeTimeout));
-        ValidatePositive(options.ShutdownGracePeriod, nameof(options.ShutdownGracePeriod));
+        ValidatePositive(
+            options.HandshakeTimeout,
+            nameof(options.HandshakeTimeout));
+
+        ValidatePositive(
+            options.ShutdownGracePeriod,
+            nameof(options.ShutdownGracePeriod));
 
         return new CompilerOptionsSnapshot(
             options.CompilerPath,
@@ -61,7 +109,9 @@ internal sealed record CompilerOptionsSnapshot(
     {
         if (value <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(SassCompilerOptions), $"{name} must be positive.");
+            throw new ArgumentOutOfRangeException(
+                nameof(SassCompilerOptions),
+                $"{name} must be positive.");
         }
     }
 
@@ -69,7 +119,9 @@ internal sealed record CompilerOptionsSnapshot(
     {
         if (value <= TimeSpan.Zero || value == Timeout.InfiniteTimeSpan)
         {
-            throw new ArgumentOutOfRangeException(nameof(SassCompilerOptions), $"{name} must be positive.");
+            throw new ArgumentOutOfRangeException(
+                nameof(SassCompilerOptions),
+                $"{name} must be positive.");
         }
     }
 }

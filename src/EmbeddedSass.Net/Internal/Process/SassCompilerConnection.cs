@@ -3,21 +3,15 @@ using EmbeddedSass.Net.Internal.Protocol;
 
 namespace EmbeddedSass.Net.Internal.Process;
 
-internal sealed class SassCompilerConnection : IAsyncDisposable
+internal sealed class SassCompilerConnection(
+    CompilerOptionsSnapshot options,
+    IProcessLauncher? launcher = null)
+    : IAsyncDisposable
 {
-    private readonly CompilerOptionsSnapshot _options;
-    private readonly IProcessLauncher _launcher;
+    private readonly IProcessLauncher _launcher = launcher ?? new ProcessLauncher();
     private readonly SemaphoreSlim _startGate = new(1, 1);
-    private CompilerRuntime? _runtime;
-    private int _disposed;
-
-    public SassCompilerConnection(
-        CompilerOptionsSnapshot options,
-        IProcessLauncher? launcher = null)
-    {
-        _options = options;
-        _launcher = launcher ?? new ProcessLauncher();
-    }
+    private EmbeddedCompilerProcess? _runtime;
+    private bool _disposed;
 
     public SassCompilerInfo? Info { get; private set; }
 
@@ -25,21 +19,21 @@ internal sealed class SassCompilerConnection : IAsyncDisposable
         MappedCompileRequest request,
         CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-        CompilerRuntime runtime = await GetRuntimeAsync(cancellationToken).ConfigureAwait(false);
+        var runtime = await GetRuntimeAsync(cancellationToken).ConfigureAwait(false);
         return await runtime.CompileAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
-        {
-            return;
-        }
-
         await _startGate.WaitAsync().ConfigureAwait(false);
         try
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
             if (_runtime is not null)
             {
                 await _runtime.DisposeAsync().ConfigureAwait(false);
@@ -49,23 +43,16 @@ internal sealed class SassCompilerConnection : IAsyncDisposable
         finally
         {
             _startGate.Release();
-            _startGate.Dispose();
         }
     }
 
-    private async Task<CompilerRuntime> GetRuntimeAsync(CancellationToken cancellationToken)
+    private async Task<EmbeddedCompilerProcess> GetRuntimeAsync(CancellationToken cancellationToken)
     {
-        CompilerRuntime? current = Volatile.Read(ref _runtime);
-        if (current is { IsAvailable: true })
-        {
-            return current;
-        }
-
         await _startGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-            current = _runtime;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var current = _runtime;
             if (current is { IsAvailable: true })
             {
                 return current;
@@ -76,7 +63,7 @@ internal sealed class SassCompilerConnection : IAsyncDisposable
                 await current.DisposeAsync().ConfigureAwait(false);
             }
 
-            current = await CompilerRuntime.StartAsync(_options, _launcher, cancellationToken)
+            current = await EmbeddedCompilerProcess.StartAsync(options, _launcher, cancellationToken)
                 .ConfigureAwait(false);
             _runtime = current;
             Info = current.Info;

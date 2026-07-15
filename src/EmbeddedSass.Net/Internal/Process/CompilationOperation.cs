@@ -6,16 +6,15 @@ using EmbeddedSass.Net.Internal.Protocol;
 
 namespace EmbeddedSass.Net.Internal.Process;
 
-internal sealed class CompilationState
+internal sealed class CompilationOperation
 {
     private readonly Channel<SassLogEvent> _logs;
     private readonly SassLogHandler? _logHandler;
     private readonly CancellationToken _connectionCancellation;
     private readonly Action _release;
     private readonly Task _logWorker;
-    private int _completed;
 
-    public CompilationState(
+    public CompilationOperation(
         uint compilationId,
         SassLogHandler? logHandler,
         int maximumPendingLogs,
@@ -65,12 +64,11 @@ internal sealed class CompilationState
 
     public void Complete(OutboundMessage.Types.CompileResponse response)
     {
-        if (Interlocked.Exchange(ref _completed, 1) != 0)
+        if (!_logs.Writer.TryComplete())
         {
             return;
         }
 
-        _logs.Writer.TryComplete();
         _ = CompleteAfterLogsAsync(response);
     }
 
@@ -112,12 +110,11 @@ internal sealed class CompilationState
 
     public void Fail(Exception exception)
     {
-        if (Interlocked.Exchange(ref _completed, 1) != 0)
+        if (!_logs.Writer.TryComplete(exception))
         {
             return;
         }
 
-        _logs.Writer.TryComplete(exception);
         Completion.TrySetException(exception);
         _release();
     }
@@ -193,7 +190,7 @@ internal sealed class CompilationState
             return;
         }
 
-        await foreach (SassLogEvent logEvent in _logs.Reader.ReadAllAsync(_connectionCancellation)
+        await foreach (var logEvent in _logs.Reader.ReadAllAsync(_connectionCancellation)
             .ConfigureAwait(false))
         {
             await _logHandler(logEvent, _connectionCancellation).ConfigureAwait(false);

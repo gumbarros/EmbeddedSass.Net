@@ -2,15 +2,10 @@ using EmbeddedSass.Net.Diagnostics;
 
 namespace EmbeddedSass.Net.Internal.Protocol;
 
-internal sealed class ProtocolIdAllocator
+internal sealed class ProtocolIdAllocator(uint initialValue = 1)
 {
-    private readonly object _gate = new();
-    private uint _next;
-
-    public ProtocolIdAllocator(uint initialValue = 1)
-    {
-        _next = Normalize(initialValue);
-    }
+    private readonly Lock _gate = new();
+    private uint _next = Normalize(initialValue);
 
     public uint Rent(Func<uint, bool> isInUse)
     {

@@ -1,20 +1,33 @@
 namespace EmbeddedSass.Net.Diagnostics;
 
-public delegate ValueTask SassLogHandler(
-    SassLogEvent logEvent,
-    CancellationToken cancellationToken);
-
-public sealed record SassLogEvent(
-    SassLogLevel Level,
-    string Message,
-    string FormattedMessage,
-    SassSourceSpan? Span,
-    string? StackTrace,
-    string? DeprecationId);
-
-public enum SassLogLevel
+public sealed class SassLogEvent
 {
-    Warning,
-    DeprecationWarning,
-    Debug
+    public SassLogLevel Level { get; }
+
+    public string Message { get; }
+
+    public string FormattedMessage { get; }
+
+    public SassSourceSpan? Span { get; }
+
+    public string? StackTrace { get; }
+
+    public string? DeprecationId { get; }
+    
+    public SassLogEvent(
+        SassLogLevel level,
+        string message,
+        string formattedMessage,
+        SassSourceSpan? span,
+        string? stackTrace,
+        string? deprecationId)
+    {
+        Level = level;
+        Message = message;
+        FormattedMessage = formattedMessage;
+        Span = span;
+        StackTrace = stackTrace;
+        DeprecationId = deprecationId;
+    }
+
 }

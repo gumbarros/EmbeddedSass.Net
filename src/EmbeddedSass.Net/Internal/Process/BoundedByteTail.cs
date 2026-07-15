@@ -5,7 +5,7 @@ namespace EmbeddedSass.Net.Internal.Process;
 internal sealed class BoundedByteTail
 {
     private readonly byte[] _buffer;
-    private readonly object _gate = new();
+    private readonly Lock _lock = new();
     private int _start;
     private int _count;
 
@@ -22,7 +22,7 @@ internal sealed class BoundedByteTail
             return;
         }
 
-        lock (_gate)
+        lock (_lock)
         {
             if (bytes.Length >= _buffer.Length)
             {
@@ -32,9 +32,9 @@ internal sealed class BoundedByteTail
                 return;
             }
 
-            foreach (byte value in bytes)
+            foreach (var value in bytes)
             {
-                int index = (_start + _count) % _buffer.Length;
+                var index = (_start + _count) % _buffer.Length;
                 _buffer[index] = value;
                 if (_count == _buffer.Length)
                 {
@@ -50,15 +50,15 @@ internal sealed class BoundedByteTail
 
     public override string ToString()
     {
-        lock (_gate)
+        lock (_lock)
         {
             if (_count == 0)
             {
                 return string.Empty;
             }
 
-            byte[] ordered = new byte[_count];
-            int firstLength = Math.Min(_count, _buffer.Length - _start);
+            var ordered = new byte[_count];
+            var firstLength = Math.Min(_count, _buffer.Length - _start);
             _buffer.AsSpan(_start, firstLength).CopyTo(ordered);
             if (firstLength < _count)
             {

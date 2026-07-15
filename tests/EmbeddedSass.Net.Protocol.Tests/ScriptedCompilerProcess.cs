@@ -37,6 +37,53 @@ internal sealed class ScriptedProcessLauncher : IProcessLauncher
         int ExitCode);
 }
 
+internal sealed class GatedDisposalProcessLauncher : IProcessLauncher
+{
+    private readonly ScriptedProcessLauncher _inner = new();
+    private readonly TaskCompletionSource _allowDisposal =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public TaskCompletionSource DisposalStarted { get; } =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void Enqueue(Func<ScriptedCompilerEndpoint, CancellationToken, Task> script) =>
+        _inner.Enqueue(script);
+
+    public void AllowDisposal() => _allowDisposal.TrySetResult();
+
+    public ICompilerProcess Launch(CompilerOptionsSnapshot options) =>
+        new GatedDisposalProcess(
+            _inner.Launch(options),
+            DisposalStarted,
+            _allowDisposal.Task);
+
+    private sealed class GatedDisposalProcess(
+        ICompilerProcess inner,
+        TaskCompletionSource disposalStarted,
+        Task allowDisposal) : ICompilerProcess
+    {
+        public Stream StandardInput => inner.StandardInput;
+
+        public Stream StandardOutput => inner.StandardOutput;
+
+        public Stream StandardError => inner.StandardError;
+
+        public int? ExitCode => inner.ExitCode;
+
+        public Task WaitForExitAsync(CancellationToken cancellationToken = default) =>
+            inner.WaitForExitAsync(cancellationToken);
+
+        public void Kill() => inner.Kill();
+
+        public async ValueTask DisposeAsync()
+        {
+            disposalStarted.TrySetResult();
+            await allowDisposal.ConfigureAwait(false);
+            await inner.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+}
+
 internal sealed class ScriptedCompilerEndpoint
 {
     public ScriptedCompilerEndpoint(
