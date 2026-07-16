@@ -17,7 +17,7 @@ internal sealed class CompilationOperation
     private readonly ImporterRegistry _importers;
     private readonly Func<uint, InboundMessage, Task> _sendAsync;
     private readonly Action<Exception> _fatalCallbackFailure;
-    private readonly HashSet<uint> _pendingCallbackIds = [];
+    private readonly HashSet<CallbackKey> _pendingCallbacks = [];
     private readonly Lock _callbackGate = new();
     private int _completed;
 
@@ -100,14 +100,20 @@ internal sealed class CompilationOperation
                 ? ParseUrl(request.ContainingUrl, allowRelative: false, "containing URL")
                 : null);
 
-        StartCallback(request.Id, () => CanonicalizeAsync(request.Id, importer, context));
+        StartCallback(
+            OutboundMessage.MessageOneofCase.CanonicalizeRequest,
+            request.Id,
+            () => CanonicalizeAsync(request.Id, importer, context));
     }
 
     public void HandleImport(OutboundMessage.Types.ImportRequest request)
     {
         var importer = GetImporter<ISassContentImporter>(request.ImporterId, "load");
         var canonicalUrl = ParseUrl(request.Url, allowRelative: false, "canonical import URL");
-        StartCallback(request.Id, () => ImportAsync(request.Id, importer, canonicalUrl));
+        StartCallback(
+            OutboundMessage.MessageOneofCase.ImportRequest,
+            request.Id,
+            () => ImportAsync(request.Id, importer, canonicalUrl));
     }
 
     public void HandleFileImport(OutboundMessage.Types.FileImportRequest request)
@@ -122,7 +128,10 @@ internal sealed class CompilationOperation
                 ? ParseUrl(request.ContainingUrl, allowRelative: false, "containing URL")
                 : null);
 
-        StartCallback(request.Id, () => FileImportAsync(request.Id, importer, context));
+        StartCallback(
+            OutboundMessage.MessageOneofCase.FileImportRequest,
+            request.Id,
+            () => FileImportAsync(request.Id, importer, context));
     }
 
     public void Complete(OutboundMessage.Types.CompileResponse response)
@@ -345,20 +354,27 @@ internal sealed class CompilationOperation
             .ConfigureAwait(false);
     }
 
-    private void StartCallback(uint requestId, Func<Task> callback)
+    private void StartCallback(
+        OutboundMessage.MessageOneofCase callbackType,
+        uint requestId,
+        Func<Task> callback)
     {
+        var key = new CallbackKey(callbackType, requestId);
         lock (_callbackGate)
         {
-            if (!_pendingCallbackIds.Add(requestId))
+            if (!_pendingCallbacks.Add(key))
             {
-                throw new SassProtocolException($"Duplicate pending callback ID {requestId}.");
+                throw new SassProtocolException(
+                    $"Duplicate pending {callbackType} callback ID {requestId}.");
             }
         }
 
-        _ = ObserveCallbackAsync(requestId, callback);
+        _ = ObserveCallbackAsync(key, callback);
     }
 
-    private async Task ObserveCallbackAsync(uint requestId, Func<Task> callback)
+    private async Task ObserveCallbackAsync(
+        CallbackKey key,
+        Func<Task> callback)
     {
         try
         {
@@ -375,7 +391,7 @@ internal sealed class CompilationOperation
         {
             lock (_callbackGate)
             {
-                _pendingCallbackIds.Remove(requestId);
+                _pendingCallbacks.Remove(key);
             }
         }
     }
@@ -430,6 +446,10 @@ internal sealed class CompilationOperation
 
     private static string CallbackError(Exception exception) =>
         string.IsNullOrEmpty(exception.Message) ? exception.GetType().Name : exception.Message;
+
+    private readonly record struct CallbackKey(
+        OutboundMessage.MessageOneofCase Type,
+        uint Id);
 
     private async Task RunLogWorkerAsync()
     {

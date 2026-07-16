@@ -152,6 +152,64 @@ public sealed class CompilationDispatcherTests
     }
 
     [Fact]
+    public async Task CallbackIdsAreScopedByRequestType()
+    {
+        var importSent = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        CompilationDispatcher? dispatcher = null;
+        uint compilationId = 0;
+        uint importerId = 0;
+        dispatcher = CreateDispatcher((_, message) =>
+        {
+            if (message.MessageCase == InboundMessage.MessageOneofCase.CanonicalizeResponse)
+            {
+                dispatcher!.Dispatch(Packet(
+                    compilationId,
+                    new OutboundMessage
+                    {
+                        ImportRequest = new OutboundMessage.Types.ImportRequest
+                        {
+                            Id = 0,
+                            ImporterId = importerId,
+                            Url = "virtual:theme"
+                        }
+                    }));
+            }
+            else if (message.MessageCase == InboundMessage.MessageOneofCase.ImportResponse)
+            {
+                importSent.TrySetResult();
+            }
+
+            return Task.CompletedTask;
+        });
+        using (dispatcher)
+        {
+            var registry = new ImporterRegistry();
+            importerId = registry.Register(new RecordingContentImporter());
+            var operation = await dispatcher!.RegisterAsync(
+                null,
+                CancellationToken.None,
+                registry);
+            compilationId = operation.CompilationId;
+
+            dispatcher.Dispatch(Packet(
+                compilationId,
+                new OutboundMessage
+                {
+                    CanonicalizeRequest = new OutboundMessage.Types.CanonicalizeRequest
+                    {
+                        Id = 0,
+                        ImporterId = importerId,
+                        Url = "theme"
+                    }
+                }));
+
+            await importSent.Task;
+            dispatcher.FailAll(new OperationCanceledException());
+        }
+    }
+
+    [Fact]
     public async Task FileImporterCallbackSendsLocalFileUrl()
     {
         var sent = new TaskCompletionSource<InboundMessage>(
