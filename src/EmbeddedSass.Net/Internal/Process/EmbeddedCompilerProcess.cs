@@ -38,7 +38,9 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
         _dispatcher = new CompilationDispatcher(
             options.MaxConcurrentCompilations,
             options.MaxPendingLogEvents,
-            _lifetime.Token);
+            _lifetime.Token,
+            (compilationId, message) => SendAsync(compilationId, message.ToByteArray()),
+            Fail);
         _standardError = new BoundedByteTail(options.MaxCapturedStderrBytes);
 
         _readerLoop = ReadProtocolAsync();
@@ -96,7 +98,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
         ThrowIfUnavailable();
 
         var operation = await _dispatcher
-            .RegisterAsync(request.LogHandler, cancellationToken)
+            .RegisterAsync(request.LogHandler, cancellationToken, request.Importers)
             .ConfigureAwait(false);
 
         try

@@ -24,3 +24,15 @@ using EmbeddedSass.Net.Compiler;
 var options = new SassCompilerOptions().UseBundledDartSass();
 await using var compiler = new SassCompiler(options);
 ```
+
+## Imports
+
+Filesystem imports can be resolved from one or more load paths:
+
+```csharp
+var result = await compiler.CompileAsync(
+    new SassCompileRequest(new SassStringInput("@use 'theme';"))
+    {
+        LoadPaths = ["/absolute/path/to/styles"]
+    });
+```

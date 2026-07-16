@@ -16,19 +16,26 @@ internal sealed class CompilationDispatcher : IDisposable
     private readonly SemaphoreSlim _compilationSlots;
     private readonly int _maximumPendingLogs;
     private readonly CancellationToken _connectionCancellation;
+    private readonly Func<uint, InboundMessage, Task> _sendAsync;
+    private readonly Action<Exception> _fatalCallbackFailure;
     private readonly TaskCompletionSource<SassCompilerInfo> _version =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public CompilationDispatcher(
         int maximumConcurrentCompilations,
         int maximumPendingLogs,
-        CancellationToken connectionCancellation)
+        CancellationToken connectionCancellation,
+        Func<uint, InboundMessage, Task>? sendAsync = null,
+        Action<Exception>? fatalCallbackFailure = null)
     {
         _compilationSlots = new SemaphoreSlim(
             maximumConcurrentCompilations,
             maximumConcurrentCompilations);
         _maximumPendingLogs = maximumPendingLogs;
         _connectionCancellation = connectionCancellation;
+        _sendAsync = sendAsync ?? ((_, _) =>
+            Task.FromException(new SassProtocolException("No callback sender was configured.")));
+        _fatalCallbackFailure = fatalCallbackFailure ?? FailAll;
     }
 
     public Task<SassCompilerInfo> Version => _version.Task;
@@ -41,7 +48,8 @@ internal sealed class CompilationDispatcher : IDisposable
 
     public async Task<CompilationOperation> RegisterAsync(
         SassLogHandler? logHandler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ImporterRegistry? importers = null)
     {
         await _compilationSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -59,8 +67,11 @@ internal sealed class CompilationDispatcher : IDisposable
         var operation = new CompilationOperation(
             compilationId,
             logHandler,
+            importers ?? new ImporterRegistry(),
             _maximumPendingLogs,
             _connectionCancellation,
+            _sendAsync,
+            _fatalCallbackFailure,
             () => _compilationSlots.Release());
 
         if (_compilations.TryAdd(compilationId, operation))
@@ -139,8 +150,17 @@ internal sealed class CompilationDispatcher : IDisposable
                 break;
 
             case OutboundMessage.MessageOneofCase.CanonicalizeRequest:
+                operation.HandleCanonicalize(message.CanonicalizeRequest);
+                break;
+
             case OutboundMessage.MessageOneofCase.ImportRequest:
+                operation.HandleImport(message.ImportRequest);
+                break;
+
             case OutboundMessage.MessageOneofCase.FileImportRequest:
+                operation.HandleFileImport(message.FileImportRequest);
+                break;
+
             case OutboundMessage.MessageOneofCase.FunctionCallRequest:
                 throw new SassProtocolException(
                     $"The compiler sent unsupported callback {message.MessageCase} for compilation {packet.CompilationId}.");

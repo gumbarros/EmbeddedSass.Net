@@ -2,7 +2,9 @@ using Google.Protobuf;
 using Sass.EmbeddedProtocol;
 using EmbeddedSass.Net.Diagnostics;
 using EmbeddedSass.Net.Internal.Process;
+using EmbeddedSass.Net.Internal.Protocol;
 using EmbeddedSass.Net.Internal.Transport;
+using EmbeddedSass.Net.Importing;
 
 namespace EmbeddedSass.Net.Protocol.Tests;
 
@@ -55,7 +57,7 @@ public sealed class CompilationDispatcherTests
     }
 
     [Fact]
-    public async Task UnsupportedCompilerCallbackIsRejected()
+    public async Task UnsupportedFunctionCallbackIsRejected()
     {
         using var dispatcher = CreateDispatcher();
         CompilationOperation operation = await dispatcher.RegisterAsync(null, CancellationToken.None);
@@ -65,12 +67,173 @@ public sealed class CompilationDispatcherTests
                 operation.CompilationId,
                 new OutboundMessage
                 {
-                    CanonicalizeRequest = new OutboundMessage.Types.CanonicalizeRequest()
+                    FunctionCallRequest = new OutboundMessage.Types.FunctionCallRequest()
                 })));
 
         Assert.Contains("unsupported callback", exception.Message);
         dispatcher.FailAll(exception);
         await Assert.ThrowsAsync<SassProtocolException>(() => operation.Completion.Task);
+    }
+
+    [Fact]
+    public async Task ContentImporterCanonicalizeCallbackSendsResponse()
+    {
+        var sent = new TaskCompletionSource<InboundMessage>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcher = CreateDispatcher((_, message) =>
+        {
+            sent.TrySetResult(message);
+            return Task.CompletedTask;
+        });
+        var importer = new RecordingContentImporter();
+        var registry = new ImporterRegistry();
+        uint importerId = registry.Register(importer);
+        CompilationOperation operation = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None,
+            registry);
+
+        dispatcher.Dispatch(Packet(
+            operation.CompilationId,
+            new OutboundMessage
+            {
+                CanonicalizeRequest = new OutboundMessage.Types.CanonicalizeRequest
+                {
+                    Id = 9,
+                    ImporterId = importerId,
+                    Url = "theme",
+                    FromImport = true,
+                    ContainingUrl = "virtual:entry"
+                }
+            }));
+
+        InboundMessage response = await sent.Task;
+        Assert.Equal(9u, response.CanonicalizeResponse.Id);
+        Assert.Equal("virtual:theme", response.CanonicalizeResponse.Url);
+        Assert.True(response.CanonicalizeResponse.ContainingUrlUnused);
+        Assert.Equal(new Uri("theme", UriKind.Relative), importer.CanonicalizeContext?.Url);
+        Assert.True(importer.CanonicalizeContext?.FromImport);
+        dispatcher.FailAll(new OperationCanceledException());
+    }
+
+    [Fact]
+    public async Task ContentImporterExceptionBecomesImportErrorResponse()
+    {
+        var sent = new TaskCompletionSource<InboundMessage>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcher = CreateDispatcher((_, message) =>
+        {
+            sent.TrySetResult(message);
+            return Task.CompletedTask;
+        });
+        var registry = new ImporterRegistry();
+        uint importerId = registry.Register(new ThrowingContentImporter());
+        CompilationOperation operation = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None,
+            registry);
+
+        dispatcher.Dispatch(Packet(
+            operation.CompilationId,
+            new OutboundMessage
+            {
+                ImportRequest = new OutboundMessage.Types.ImportRequest
+                {
+                    Id = 10,
+                    ImporterId = importerId,
+                    Url = "virtual:theme"
+                }
+            }));
+
+        InboundMessage response = await sent.Task;
+        Assert.Equal("could not load theme", response.ImportResponse.Error);
+        dispatcher.FailAll(new OperationCanceledException());
+    }
+
+    [Fact]
+    public async Task FileImporterCallbackSendsLocalFileUrl()
+    {
+        var sent = new TaskCompletionSource<InboundMessage>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcher = CreateDispatcher((_, message) =>
+        {
+            sent.TrySetResult(message);
+            return Task.CompletedTask;
+        });
+        var registry = new ImporterRegistry();
+        uint importerId = registry.Register(new RecordingFileImporter());
+        CompilationOperation operation = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None,
+            registry);
+
+        dispatcher.Dispatch(Packet(
+            operation.CompilationId,
+            new OutboundMessage
+            {
+                FileImportRequest = new OutboundMessage.Types.FileImportRequest
+                {
+                    Id = 11,
+                    ImporterId = importerId,
+                    Url = "theme"
+                }
+            }));
+
+        InboundMessage response = await sent.Task;
+        Assert.Equal(11u, response.FileImportResponse.Id);
+        Assert.True(Uri.TryCreate(response.FileImportResponse.FileUrl, UriKind.Absolute, out Uri? fileUrl));
+        Assert.True(fileUrl.IsFile);
+        dispatcher.FailAll(new OperationCanceledException());
+    }
+
+    [Fact]
+    public async Task AwaitingImporterDoesNotBlockAnotherCompilation()
+    {
+        var callbackEntered = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseCallback = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var callbackSent = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcher = new CompilationDispatcher(
+            maximumConcurrentCompilations: 2,
+            maximumPendingLogs: 2,
+            CancellationToken.None,
+            (_, _) =>
+            {
+                callbackSent.TrySetResult();
+                return Task.CompletedTask;
+            });
+        var registry = new ImporterRegistry();
+        uint importerId = registry.Register(
+            new BlockingContentImporter(callbackEntered, releaseCallback));
+        CompilationOperation waiting = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None,
+            registry);
+        CompilationOperation independent = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None);
+
+        dispatcher.Dispatch(Packet(
+            waiting.CompilationId,
+            new OutboundMessage
+            {
+                CanonicalizeRequest = new OutboundMessage.Types.CanonicalizeRequest
+                {
+                    Id = 12,
+                    ImporterId = importerId,
+                    Url = "theme"
+                }
+            }));
+        await callbackEntered.Task;
+
+        dispatcher.Dispatch(Packet(independent.CompilationId, Success("independent")));
+        Assert.Equal("independent", (await independent.Completion.Task).Css);
+
+        releaseCallback.TrySetResult();
+        await callbackSent.Task;
+        dispatcher.FailAll(new OperationCanceledException());
     }
 
     [Fact]
@@ -133,6 +296,10 @@ public sealed class CompilationDispatcherTests
         int maximumConcurrentCompilations = 1) =>
         new(maximumConcurrentCompilations, maximumPendingLogs: 2, CancellationToken.None);
 
+    private static CompilationDispatcher CreateDispatcher(
+        Func<uint, InboundMessage, Task> sendAsync) =>
+        new(1, maximumPendingLogs: 2, CancellationToken.None, sendAsync);
+
     private static ProtocolPacket Packet(uint compilationId, OutboundMessage message) =>
         new(compilationId, message.ToByteArray());
 
@@ -147,4 +314,62 @@ public sealed class CompilationDispatcherTests
                 }
             }
         };
+
+    private sealed class RecordingContentImporter : ISassContentImporter
+    {
+        public SassCanonicalizeContext? CanonicalizeContext { get; private set; }
+
+        public ValueTask<SassCanonicalizeResult?> CanonicalizeAsync(
+            SassCanonicalizeContext context,
+            CancellationToken cancellationToken)
+        {
+            CanonicalizeContext = context;
+            return ValueTask.FromResult<SassCanonicalizeResult?>(
+                new(new Uri("virtual:theme"), ContainingUrlUnused: true));
+        }
+
+        public ValueTask<SassImportResult?> LoadAsync(
+            Uri canonicalUrl,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SassImportResult?>(new("$color: purple;"));
+    }
+
+    private sealed class ThrowingContentImporter : ISassContentImporter
+    {
+        public ValueTask<SassCanonicalizeResult?> CanonicalizeAsync(
+            SassCanonicalizeContext context,
+            CancellationToken cancellationToken) => ValueTask.FromResult<SassCanonicalizeResult?>(null);
+
+        public ValueTask<SassImportResult?> LoadAsync(
+            Uri canonicalUrl,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromException<SassImportResult?>(new InvalidOperationException("could not load theme"));
+    }
+
+    private sealed class RecordingFileImporter : ISassFileImporter
+    {
+        public ValueTask<SassFileImportResult?> FindFileUrlAsync(
+            SassFileImportContext context,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SassFileImportResult?>(
+                new(new Uri(Path.GetFullPath("theme.scss"))));
+    }
+
+    private sealed class BlockingContentImporter(
+        TaskCompletionSource entered,
+        TaskCompletionSource release) : ISassContentImporter
+    {
+        public async ValueTask<SassCanonicalizeResult?> CanonicalizeAsync(
+            SassCanonicalizeContext context,
+            CancellationToken cancellationToken)
+        {
+            entered.TrySetResult();
+            await release.Task.WaitAsync(cancellationToken);
+            return null;
+        }
+
+        public ValueTask<SassImportResult?> LoadAsync(
+            Uri canonicalUrl,
+            CancellationToken cancellationToken) => ValueTask.FromResult<SassImportResult?>(null);
+    }
 }

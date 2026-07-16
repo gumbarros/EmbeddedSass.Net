@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Sass.EmbeddedProtocol;
 using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Net.Importing;
 using EmbeddedSass.Net.Internal.Protocol;
 
 namespace EmbeddedSass.Net.Internal.Process;
@@ -13,17 +14,28 @@ internal sealed class CompilationOperation
     private readonly CancellationToken _connectionCancellation;
     private readonly Action _release;
     private readonly Task _logWorker;
+    private readonly ImporterRegistry _importers;
+    private readonly Func<uint, InboundMessage, Task> _sendAsync;
+    private readonly Action<Exception> _fatalCallbackFailure;
+    private readonly HashSet<uint> _pendingCallbackIds = [];
+    private readonly Lock _callbackGate = new();
 
     public CompilationOperation(
         uint compilationId,
         SassLogHandler? logHandler,
+        ImporterRegistry importers,
         int maximumPendingLogs,
         CancellationToken connectionCancellation,
+        Func<uint, InboundMessage, Task> sendAsync,
+        Action<Exception> fatalCallbackFailure,
         Action release)
     {
         CompilationId = compilationId;
         _logHandler = logHandler;
+        _importers = importers;
         _connectionCancellation = connectionCancellation;
+        _sendAsync = sendAsync;
+        _fatalCallbackFailure = fatalCallbackFailure;
         _release = release;
         _logs = Channel.CreateBounded<SassLogEvent>(new BoundedChannelOptions(maximumPendingLogs)
         {
@@ -60,6 +72,43 @@ internal sealed class CompilationOperation
             message.HasDeprecationType ? message.DeprecationType : null);
 
         return _logs.Writer.TryWrite(logEvent);
+    }
+
+    public void HandleCanonicalize(OutboundMessage.Types.CanonicalizeRequest request)
+    {
+        ISassContentImporter importer = GetImporter<ISassContentImporter>(
+            request.ImporterId,
+            "canonicalize");
+        var context = new SassCanonicalizeContext(
+            ParseUrl(request.Url, allowRelative: true, "canonicalize URL"),
+            request.FromImport,
+            request.HasContainingUrl
+                ? ParseUrl(request.ContainingUrl, allowRelative: false, "containing URL")
+                : null);
+
+        StartCallback(request.Id, () => CanonicalizeAsync(request.Id, importer, context));
+    }
+
+    public void HandleImport(OutboundMessage.Types.ImportRequest request)
+    {
+        ISassContentImporter importer = GetImporter<ISassContentImporter>(request.ImporterId, "load");
+        Uri canonicalUrl = ParseUrl(request.Url, allowRelative: false, "canonical import URL");
+        StartCallback(request.Id, () => ImportAsync(request.Id, importer, canonicalUrl));
+    }
+
+    public void HandleFileImport(OutboundMessage.Types.FileImportRequest request)
+    {
+        ISassFileImporter importer = GetImporter<ISassFileImporter>(
+            request.ImporterId,
+            "file import");
+        var context = new SassFileImportContext(
+            ParseUrl(request.Url, allowRelative: true, "file import URL"),
+            request.FromImport,
+            request.HasContainingUrl
+                ? ParseUrl(request.ContainingUrl, allowRelative: false, "containing URL")
+                : null);
+
+        StartCallback(request.Id, () => FileImportAsync(request.Id, importer, context));
     }
 
     public void Complete(OutboundMessage.Types.CompileResponse response)
@@ -177,6 +226,194 @@ internal sealed class CompilationOperation
             sourceMap.Length == 0 ? null : sourceMap,
             Array.AsReadOnly(loadedUrls));
     }
+
+    private async Task CanonicalizeAsync(
+        uint requestId,
+        ISassContentImporter importer,
+        SassCanonicalizeContext context)
+    {
+        var response = new InboundMessage.Types.CanonicalizeResponse { Id = requestId };
+        try
+        {
+            var result = await importer
+                .CanonicalizeAsync(context, _connectionCancellation)
+                .ConfigureAwait(false);
+            if (result is not null)
+            {
+                ArgumentNullException.ThrowIfNull(result.CanonicalUrl);
+                EnsureAbsoluteUrl(result.CanonicalUrl, "The canonical importer URL");
+                response.Url = result.CanonicalUrl.AbsoluteUri;
+                response.ContainingUrlUnused = result.ContainingUrlUnused;
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException ||
+                                           !_connectionCancellation.IsCancellationRequested)
+        {
+            response.Error = CallbackError(exception);
+        }
+
+        await SendCallbackAsync(new InboundMessage { CanonicalizeResponse = response })
+            .ConfigureAwait(false);
+    }
+
+    private async Task ImportAsync(
+        uint requestId,
+        ISassContentImporter importer,
+        Uri canonicalUrl)
+    {
+        var response = new InboundMessage.Types.ImportResponse { Id = requestId };
+        try
+        {
+            SassImportResult? result = await importer
+                .LoadAsync(canonicalUrl, _connectionCancellation)
+                .ConfigureAwait(false);
+            if (result is not null)
+            {
+                ArgumentNullException.ThrowIfNull(result.Contents);
+                var success = new InboundMessage.Types.ImportResponse.Types.ImportSuccess
+                {
+                    Contents = result.Contents,
+                    Syntax = MapSyntax(result.Syntax)
+                };
+                if (result.SourceMapUrl is not null)
+                {
+                    EnsureAbsoluteUrl(result.SourceMapUrl, "The source-map URL");
+                    success.SourceMapUrl = result.SourceMapUrl.AbsoluteUri;
+                }
+
+                response.Success = success;
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException ||
+                                           !_connectionCancellation.IsCancellationRequested)
+        {
+            response.Error = CallbackError(exception);
+        }
+
+        await SendCallbackAsync(new InboundMessage { ImportResponse = response })
+            .ConfigureAwait(false);
+    }
+
+    private async Task FileImportAsync(
+        uint requestId,
+        ISassFileImporter importer,
+        SassFileImportContext context)
+    {
+        var response = new InboundMessage.Types.FileImportResponse { Id = requestId };
+        try
+        {
+            SassFileImportResult? result = await importer
+                .FindFileUrlAsync(context, _connectionCancellation)
+                .ConfigureAwait(false);
+            if (result is not null)
+            {
+                ArgumentNullException.ThrowIfNull(result.FileUrl);
+                EnsureAbsoluteUrl(result.FileUrl, "The file importer URL");
+                if (!result.FileUrl.IsFile || !string.IsNullOrEmpty(result.FileUrl.Host))
+                {
+                    throw new ArgumentException(
+                        "The file importer URL must be an absolute local file URL.");
+                }
+
+                response.FileUrl = result.FileUrl.AbsoluteUri;
+                response.ContainingUrlUnused = result.ContainingUrlUnused;
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException ||
+                                           !_connectionCancellation.IsCancellationRequested)
+        {
+            response.Error = CallbackError(exception);
+        }
+
+        await SendCallbackAsync(new InboundMessage { FileImportResponse = response })
+            .ConfigureAwait(false);
+    }
+
+    private void StartCallback(uint requestId, Func<Task> callback)
+    {
+        lock (_callbackGate)
+        {
+            if (!_pendingCallbackIds.Add(requestId))
+            {
+                throw new SassProtocolException($"Duplicate pending callback ID {requestId}.");
+            }
+        }
+
+        _ = ObserveCallbackAsync(requestId, callback);
+    }
+
+    private async Task ObserveCallbackAsync(uint requestId, Func<Task> callback)
+    {
+        try
+        {
+            await callback().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_connectionCancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _fatalCallbackFailure(exception);
+        }
+        finally
+        {
+            lock (_callbackGate)
+            {
+                _pendingCallbackIds.Remove(requestId);
+            }
+        }
+    }
+
+    private Task SendCallbackAsync(InboundMessage message) =>
+        _sendAsync(CompilationId, message);
+
+    private TImporter GetImporter<TImporter>(uint importerId, string callbackName)
+        where TImporter : class, ISassImporter
+    {
+        if (!_importers.TryGet(importerId, out ISassImporter? importer))
+        {
+            throw new SassProtocolException(
+                $"The compiler requested unknown importer ID {importerId} for {callbackName}.");
+        }
+
+        if (importer is not TImporter typed)
+        {
+            throw new SassProtocolException(
+                $"The compiler requested {callbackName} from incompatible importer ID {importerId}.");
+        }
+
+        return typed;
+    }
+
+    private static Uri ParseUrl(string value, bool allowRelative, string description)
+    {
+        UriKind kind = allowRelative ? UriKind.RelativeOrAbsolute : UriKind.Absolute;
+        if (!Uri.TryCreate(value, kind, out Uri? url) || (!allowRelative && !url.IsAbsoluteUri))
+        {
+            throw new SassProtocolException($"The compiler sent an invalid {description} '{value}'.");
+        }
+
+        return url;
+    }
+
+    private static void EnsureAbsoluteUrl(Uri url, string description)
+    {
+        if (!url.IsAbsoluteUri)
+        {
+            throw new ArgumentException($"{description} must be absolute.");
+        }
+    }
+
+    private static Syntax MapSyntax(SassSyntax syntax) => syntax switch
+    {
+        SassSyntax.Scss => Syntax.Scss,
+        SassSyntax.Indented => Syntax.Indented,
+        SassSyntax.Css => Syntax.Css,
+        _ => throw new ArgumentOutOfRangeException(nameof(syntax), syntax, "Unknown Sass syntax.")
+    };
+
+    private static string CallbackError(Exception exception) =>
+        string.IsNullOrEmpty(exception.Message) ? exception.GetType().Name : exception.Message;
 
     private async Task RunLogWorkerAsync()
     {

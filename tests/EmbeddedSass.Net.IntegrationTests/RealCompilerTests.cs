@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.Compiler;
 using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Net.Importing;
 
 namespace EmbeddedSass.Net.IntegrationTests;
 
@@ -13,14 +14,9 @@ public sealed class RealCompilerTests
     [InlineData(SassSyntax.Css, "a { color: red; }")]
     public async Task CompilesEveryStringSyntax(SassSyntax syntax, string source)
     {
-        if (!IsSupportedPlatform())
-        {
-            return;
-        }
+        await using var compiler = CreateCompiler();
 
-        await using SassCompiler compiler = CreateCompiler();
-
-        SassCompileResult result = await compiler.CompileAsync(
+        var result = await compiler.CompileAsync(
             new SassCompileRequest(new SassStringInput(source, syntax)));
 
         Assert.Contains("color: red", result.Css, StringComparison.Ordinal);
@@ -31,25 +27,20 @@ public sealed class RealCompilerTests
     [Fact]
     public async Task CompilesFileWithLoadPathAndSourceMap()
     {
-        if (!IsSupportedPlatform())
-        {
-            return;
-        }
-
-        string directory = CreateTemporaryDirectory();
+        var directory = CreateTemporaryDirectory();
         try
         {
-            string loadPath = Path.Combine(directory, "shared");
+            var loadPath = Path.Combine(directory, "shared");
             Directory.CreateDirectory(loadPath);
-            string entryPath = Path.Combine(directory, "entry.scss");
-            string colorsPath = Path.Combine(loadPath, "_colors.scss");
+            var entryPath = Path.Combine(directory, "entry.scss");
+            var colorsPath = Path.Combine(loadPath, "_colors.scss");
             await File.WriteAllTextAsync(colorsPath, "$accent: rebeccapurple;");
             await File.WriteAllTextAsync(
                 entryPath,
                 "@use 'colors'; a { color: colors.$accent; }");
 
-            await using SassCompiler compiler = CreateCompiler();
-            SassCompileResult result = await compiler.CompileAsync(
+            await using var compiler = CreateCompiler();
+            var result = await compiler.CompileAsync(
                 new SassCompileRequest(new SassFileInput(entryPath))
                 {
                     GenerateSourceMap = true,
@@ -69,15 +60,67 @@ public sealed class RealCompilerTests
     }
 
     [Fact]
+    public async Task CompilesWithContentImporter()
+    {
+        await using var compiler = CreateCompiler();
+        var result = await compiler.CompileAsync(
+            new SassCompileRequest(new SassStringInput(
+                "@use 'theme'; a { color: theme.$accent; }"))
+            {
+                Importers = [new ThemeContentImporter()]
+            });
+
+        Assert.Contains("rebeccapurple", result.Css, StringComparison.Ordinal);
+        Assert.Contains(new Uri("virtual:theme"), result.LoadedUrls);
+    }
+
+    [Fact]
+    public async Task StringInputImporterResolvesRelativeImports()
+    {
+        var input = new SassStringInput(
+            "@use 'theme'; a { color: theme.$accent; }",
+            Url: new Uri("virtual:entry"))
+        {
+            Importer = new ThemeContentImporter()
+        };
+        await using var compiler = CreateCompiler();
+
+        var result = await compiler.CompileAsync(new SassCompileRequest(input));
+
+        Assert.Contains("rebeccapurple", result.Css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FileImporterLeavesPartialResolutionToSass()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "_tokens.scss"),
+                "$spacing: 12px;");
+
+            await using var compiler = CreateCompiler();
+            var result = await compiler.CompileAsync(
+                new SassCompileRequest(new SassStringInput(
+                    "@use 'tokens'; a { padding: tokens.$spacing; }"))
+                {
+                    Importers = [new DirectoryFileImporter(directory)]
+                });
+
+            Assert.Contains("padding: 12px", result.Css, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task SupportsCompressedOutput()
     {
-        if (!IsSupportedPlatform())
-        {
-            return;
-        }
-
-        await using SassCompiler compiler = CreateCompiler();
-        SassCompileResult result = await compiler.CompileAsync(
+        await using var compiler = CreateCompiler();
+        var result = await compiler.CompileAsync(
             new SassCompileRequest(new SassStringInput(".item { color: red; }"))
             {
                 OutputStyle = SassOutputStyle.Compressed
@@ -89,13 +132,8 @@ public sealed class RealCompilerTests
     [Fact]
     public async Task DeliversWarningsAndDebugMessages()
     {
-        if (!IsSupportedPlatform())
-        {
-            return;
-        }
-
         var logs = new List<SassLogEvent>();
-        await using SassCompiler compiler = CreateCompiler();
+        await using var compiler = CreateCompiler();
         await compiler.CompileAsync(
             new SassCompileRequest(new SassStringInput("@debug 'value'; @warn 'careful';"))
             {
@@ -113,15 +151,11 @@ public sealed class RealCompilerTests
     [Fact]
     public async Task SassErrorThrowsCompilationException()
     {
-        if (!IsSupportedPlatform())
-        {
-            return;
-        }
+        await using var compiler = CreateCompiler();
 
-        await using SassCompiler compiler = CreateCompiler();
-
-        SassCompilationException exception = await Assert.ThrowsAsync<SassCompilationException>(
-            () => compiler.CompileStringAsync("a { color: $missing; }"));
+        var exception =
+            await Assert.ThrowsAsync<SassCompilationException>(() =>
+                compiler.CompileStringAsync("a { color: $missing; }"));
 
         Assert.Contains("Undefined variable", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.NotEmpty(exception.FormattedMessage);
@@ -131,20 +165,15 @@ public sealed class RealCompilerTests
     [Fact]
     public async Task ConcurrentCompilationsShareOneProcess()
     {
-        if (!IsSupportedPlatform())
-        {
-            return;
-        }
-
-        await using SassCompiler compiler = CreateCompiler(maximumConcurrentCompilations: 8);
-        Task<SassCompileResult>[] compilations = Enumerable.Range(1, 24)
+        await using var compiler = CreateCompiler(maximumConcurrentCompilations: 8);
+        var compilations = Enumerable.Range(1, 24)
             .Select(index => compiler.CompileStringAsync(
                 $".item-{index} {{ order: {index}; }}"))
             .ToArray();
 
-        SassCompileResult[] results = await Task.WhenAll(compilations);
+        var results = await Task.WhenAll(compilations);
 
-        for (int index = 1; index <= results.Length; index++)
+        for (var index = 1; index <= results.Length; index++)
         {
             Assert.Contains($"order: {index}", results[index - 1].Css, StringComparison.Ordinal);
         }
@@ -153,25 +182,20 @@ public sealed class RealCompilerTests
     [Fact]
     public async Task CanceledCompilationIsDrainedAndConnectionRemainsUsable()
     {
-        if (!IsSupportedPlatform())
-        {
-            return;
-        }
-
-        await using SassCompiler compiler = CreateCompiler(maximumConcurrentCompilations: 1);
+        await using var compiler = CreateCompiler(maximumConcurrentCompilations: 1);
         await compiler.CompileStringAsync("a { color: red; }");
 
         using var cancellation = new CancellationTokenSource();
-        Task<SassCompileResult> longCompilation = compiler.CompileStringAsync(
+        var longCompilation = compiler.CompileStringAsync(
             "@for $i from 1 through 100000 { .item-#{$i} { order: $i; } }",
             cancellationToken: cancellation.Token);
-        await Task.Delay(10);
-        cancellation.Cancel();
+        await Task.Delay(10, cancellation.Token);
+        await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => longCompilation);
 
-        SassCompileResult next = await compiler.CompileStringAsync("a { color: green; }")
-            .WaitAsync(TimeSpan.FromSeconds(10));
+        var next = await compiler.CompileStringAsync("a { color: green; }", cancellationToken: cancellation.Token)
+            .WaitAsync(TimeSpan.FromSeconds(10), cancellation.Token);
         Assert.Contains("green", next.Css, StringComparison.Ordinal);
     }
 
@@ -190,10 +214,45 @@ public sealed class RealCompilerTests
 
     private static string CreateTemporaryDirectory()
     {
-        string directory = Path.Combine(
+        var directory = Path.Combine(
             Path.GetTempPath(),
             $"embedded-sass-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
         return directory;
+    }
+
+    private sealed class ThemeContentImporter : ISassContentImporter
+    {
+        public ValueTask<SassCanonicalizeResult?> CanonicalizeAsync(
+            SassCanonicalizeContext context,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                context.Url.ToString() is "theme" or "virtual:theme"
+                    ? new SassCanonicalizeResult(new Uri("virtual:theme"), ContainingUrlUnused: true)
+                    : null);
+
+        public ValueTask<SassImportResult?> LoadAsync(
+            Uri canonicalUrl,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SassImportResult?>(
+                canonicalUrl == new Uri("virtual:theme")
+                    ? new("$accent: rebeccapurple;")
+                    : null);
+    }
+
+    private sealed class DirectoryFileImporter(string directory) : ISassFileImporter
+    {
+        public ValueTask<SassFileImportResult?> FindFileUrlAsync(
+            SassFileImportContext context,
+            CancellationToken cancellationToken)
+        {
+            if (context.Url.ToString() != "tokens")
+            {
+                return ValueTask.FromResult<SassFileImportResult?>(null);
+            }
+
+            return ValueTask.FromResult<SassFileImportResult?>(
+                new(new Uri(Path.Combine(directory, "tokens")), ContainingUrlUnused: true));
+        }
     }
 }

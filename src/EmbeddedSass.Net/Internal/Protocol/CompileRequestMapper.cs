@@ -11,6 +11,7 @@ internal static class CompileRequestMapper
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Input);
 
+        var importerRegistry = new ImporterRegistry();
         var compileRequest = new InboundMessage.Types.CompileRequest
         {
             Style = request.OutputStyle switch
@@ -61,6 +62,10 @@ internal static class CompileRequestMapper
                     },
                     Url = text.Url?.AbsoluteUri ?? string.Empty
                 };
+                if (text.Importer is not null)
+                {
+                    compileRequest.String.Importer = MapImporter(text.Importer, importerRegistry);
+                }
                 break;
 
             default:
@@ -69,6 +74,7 @@ internal static class CompileRequestMapper
                     nameof(request));
         }
 
+        AddImporters(compileRequest, request.Importers, importerRegistry);
         AddLoadPaths(compileRequest, request.LoadPaths);
         AddStrings(compileRequest.FatalDeprecation, request.FatalDeprecations, nameof(request.FatalDeprecations));
         AddStrings(compileRequest.SilenceDeprecation, request.SilencedDeprecations, nameof(request.SilencedDeprecations));
@@ -76,8 +82,64 @@ internal static class CompileRequestMapper
 
         return new MappedCompileRequest(
             new InboundMessage { CompileRequest = compileRequest },
-            request.LogHandler);
+            request.LogHandler,
+            importerRegistry);
     }
+
+    private static void AddImporters(
+        InboundMessage.Types.CompileRequest target,
+        IReadOnlyList<Importing.ISassImporter> importers,
+        ImporterRegistry registry)
+    {
+        ArgumentNullException.ThrowIfNull(importers);
+        foreach (var importer in importers)
+        {
+            ArgumentNullException.ThrowIfNull(importer);
+            target.Importers.Add(MapImporter(importer, registry));
+        }
+    }
+
+    private static InboundMessage.Types.CompileRequest.Types.Importer MapImporter(
+        Importing.ISassImporter importer,
+        ImporterRegistry registry)
+    {
+        var id = registry.Register(importer);
+        var mapped = new InboundMessage.Types.CompileRequest.Types.Importer();
+        switch (importer)
+        {
+            case Importing.ISassContentImporter contentImporter:
+                mapped.ImporterId = id;
+                ArgumentNullException.ThrowIfNull(contentImporter.NonCanonicalSchemes);
+                foreach (string? scheme in contentImporter.NonCanonicalSchemes)
+                {
+                    if (string.IsNullOrEmpty(scheme) || !scheme.All(IsSchemeCharacter))
+                    {
+                        throw new ArgumentException(
+                            "Non-canonical schemes may contain only lowercase ASCII letters, " +
+                            "digits, plus signs, hyphens, and periods.",
+                            nameof(importer));
+                    }
+
+                    mapped.NonCanonicalScheme.Add(scheme);
+                }
+
+                break;
+
+            case Importing.ISassFileImporter:
+                mapped.FileImporterId = id;
+                break;
+
+            default:
+                throw new ArgumentException(
+                    $"Unsupported Sass importer type '{importer.GetType().FullName}'.",
+                    nameof(importer));
+        }
+
+        return mapped;
+    }
+
+    private static bool IsSchemeCharacter(char value) =>
+        value is >= 'a' and <= 'z' or >= '0' and <= '9' or '+' or '-' or '.';
 
     private static void AddLoadPaths(
         InboundMessage.Types.CompileRequest target,
@@ -114,4 +176,5 @@ internal static class CompileRequestMapper
 
 internal sealed record MappedCompileRequest(
     InboundMessage Message,
-    SassLogHandler? LogHandler);
+    SassLogHandler? LogHandler,
+    ImporterRegistry Importers);

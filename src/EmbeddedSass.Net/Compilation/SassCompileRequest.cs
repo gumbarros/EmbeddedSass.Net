@@ -1,4 +1,5 @@
 using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Net.Importing;
 
 namespace EmbeddedSass.Net.Compilation;
 
@@ -23,6 +24,8 @@ public sealed record SassCompileRequest(SassInput Input)
     public bool Silent { get; init; }
 
     public IReadOnlyList<string> LoadPaths { get; init; } = [];
+
+    public IReadOnlyList<ISassImporter> Importers { get; init; } = [];
 
     public IReadOnlyList<string> FatalDeprecations { get; init; } = [];
 
