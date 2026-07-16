@@ -11,7 +11,7 @@ Add the package to the project:
 
 ```xml
 <PackageReference Include="EmbeddedSass.Net"
-                  Version="1.0.1" />
+                  Version="1.0.2" />
 ```
 
 ```csharp
@@ -59,7 +59,7 @@ Add the package to the project:
 
 ```xml
 <PackageReference Include="EmbeddedSass.Net.MsBuild"
-                  Version="1.0.1"
+                  Version="1.0.2"
                   PrivateAssets="all" />
 ```
 
