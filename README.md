@@ -39,6 +39,56 @@ var options = new SassCompilerOptions().UseBundledDartSass();
 await using var compiler = new SassCompiler(options);
 ```
 
+## Dependency injection
+
+Install the dependency-injection package in addition to a package that provides
+the compiler executable. The bundled compiler is the simplest option:
+
+```xml
+<PackageReference Include="EmbeddedSass.Net.DependencyInjection"
+                  Version="1.0.2" />
+<PackageReference Include="EmbeddedSass.Net.Compiler"
+                  Version="1.0.2" />
+```
+
+Register Embedded Sass with an `IServiceCollection` and resolve
+`ISassCompiler` where it is needed:
+
+```csharp
+using EmbeddedSass.Net.Compilation;
+using EmbeddedSass.Net.Compiler;
+using EmbeddedSass.Net.DependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddEmbeddedSass(options => options.UseBundledDartSass());
+
+var app = builder.Build();
+
+app.MapPost("/compile", async (string source, ISassCompiler compiler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await compiler.CompileStringAsync(
+        source, cancellationToken: cancellationToken);
+    return Results.Text(result.Css, "text/css");
+});
+
+app.Run();
+```
+
+To use an externally managed Embedded Dart Sass executable instead, configure
+an absolute path and omit the `EmbeddedSass.Net.Compiler` package:
+
+```csharp
+services.AddEmbeddedSass(options =>
+{
+    options.CompilerPath = "/absolute/path/to/dart-sass";
+    options.MaxConcurrentCompilations = 4;
+});
+```
+
+The registration creates one lazy, thread-safe compiler singleton and exposes
+it as `ISassCompiler`.
+
 ## Imports
 
 Filesystem imports can be resolved from one or more load paths:
