@@ -69,10 +69,10 @@ internal sealed class CompilationDispatcher : IDisposable
             logHandler,
             importers ?? new ImporterRegistry(),
             _maximumPendingLogs,
-            _connectionCancellation,
             _sendAsync,
             _fatalCallbackFailure,
-            () => _compilationSlots.Release());
+            () => _compilationSlots.Release(), 
+            _connectionCancellation);
 
         if (_compilations.TryAdd(compilationId, operation))
         {

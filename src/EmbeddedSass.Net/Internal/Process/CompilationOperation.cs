@@ -20,15 +20,14 @@ internal sealed class CompilationOperation
     private readonly HashSet<uint> _pendingCallbackIds = [];
     private readonly Lock _callbackGate = new();
 
-    public CompilationOperation(
-        uint compilationId,
+    public CompilationOperation(uint compilationId,
         SassLogHandler? logHandler,
         ImporterRegistry importers,
         int maximumPendingLogs,
-        CancellationToken connectionCancellation,
         Func<uint, InboundMessage, Task> sendAsync,
         Action<Exception> fatalCallbackFailure,
-        Action release)
+        Action release,
+        CancellationToken connectionCancellation)
     {
         CompilationId = compilationId;
         _logHandler = logHandler;
@@ -212,7 +211,7 @@ internal sealed class CompilationOperation
         for (int index = 0; index < loadedUrls.Length; index++)
         {
             string value = response.LoadedUrls[index];
-            if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? url) || !url.IsAbsoluteUri)
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var url) || !url.IsAbsoluteUri)
             {
                 throw new SassProtocolException($"Loaded URL '{value}' is not absolute.");
             }
@@ -220,7 +219,7 @@ internal sealed class CompilationOperation
             loadedUrls[index] = url;
         }
 
-        string sourceMap = response.Success.SourceMap;
+        var sourceMap = response.Success.SourceMap;
         return new SassCompileResult(
             response.Success.Css,
             sourceMap.Length == 0 ? null : sourceMap,
@@ -264,7 +263,7 @@ internal sealed class CompilationOperation
         var response = new InboundMessage.Types.ImportResponse { Id = requestId };
         try
         {
-            SassImportResult? result = await importer
+            var result = await importer
                 .LoadAsync(canonicalUrl, _connectionCancellation)
                 .ConfigureAwait(false);
             if (result is not null)
@@ -302,7 +301,7 @@ internal sealed class CompilationOperation
         var response = new InboundMessage.Types.FileImportResponse { Id = requestId };
         try
         {
-            SassFileImportResult? result = await importer
+            var result = await importer
                 .FindFileUrlAsync(context, _connectionCancellation)
                 .ConfigureAwait(false);
             if (result is not null)
@@ -387,7 +386,7 @@ internal sealed class CompilationOperation
 
     private static Uri ParseUrl(string value, bool allowRelative, string description)
     {
-        UriKind kind = allowRelative ? UriKind.RelativeOrAbsolute : UriKind.Absolute;
+        var kind = allowRelative ? UriKind.RelativeOrAbsolute : UriKind.Absolute;
         if (!Uri.TryCreate(value, kind, out Uri? url) || (!allowRelative && !url.IsAbsoluteUri))
         {
             throw new SassProtocolException($"The compiler sent an invalid {description} '{value}'.");
@@ -419,7 +418,7 @@ internal sealed class CompilationOperation
     {
         if (_logHandler is null)
         {
-            await foreach (SassLogEvent _ in _logs.Reader.ReadAllAsync(_connectionCancellation)
+            await foreach (var _ in _logs.Reader.ReadAllAsync(_connectionCancellation)
                 .ConfigureAwait(false))
             {
             }
