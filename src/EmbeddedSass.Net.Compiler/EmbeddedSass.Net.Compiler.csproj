@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../EmbeddedSass.Net/EmbeddedSass.Net.csproj" />
+    <InternalsVisibleTo Include="EmbeddedSass.Net.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>

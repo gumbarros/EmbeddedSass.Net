@@ -12,19 +12,19 @@ public static class BundledDartSass
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        string runtimeIdentifier = GetRuntimeIdentifier();
-        string fileName = OperatingSystem.IsWindows() ? "dart.exe" : "dart";
-        string root = FindCompilerDirectory(runtimeIdentifier);
-        string executable = Path.Combine(root, fileName);
-        string snapshot = Path.Combine(root, "sass.snapshot");
+        var runtimeIdentifier = GetRuntimeIdentifier();
+        var fileName = OperatingSystem.IsWindows() ? "dart.exe" : "dart";
+        var (executable, snapshot) = FindCompilerFiles(
+            AppContext.BaseDirectory,
+            runtimeIdentifier,
+            fileName);
 
         if (!OperatingSystem.IsWindows())
-        {
             MakeExecutable(executable);
-        }
 
         options.CompilerPath = executable;
         options.CompilerArguments = [snapshot];
+        
         return options;
     }
 
@@ -50,27 +50,42 @@ public static class BundledDartSass
         return $"{os}-{architecture}";
     }
 
-    private static string FindCompilerDirectory(string runtimeIdentifier)
+    internal static (string Executable, string Snapshot) FindCompilerFiles(
+        string outputDirectory,
+        string runtimeIdentifier,
+        string executableFileName)
     {
-        string outputDirectory = AppContext.BaseDirectory;
-        string direct = Path.Combine(outputDirectory, "EmbeddedSass.Net.Compiler");
-        if (Directory.Exists(direct))
+        string[] candidateDirectories =
+        [
+            Path.Combine(outputDirectory, "EmbeddedSass.Net.Compiler"),
+            outputDirectory,
+            Path.Combine(
+                outputDirectory,
+                "runtimes",
+                runtimeIdentifier,
+                "native",
+                "EmbeddedSass.Net.Compiler")
+        ];
+
+        foreach (var candidateDirectory in candidateDirectories)
         {
-            return direct;
+            var executable = Path.Combine(candidateDirectory, executableFileName);
+            var snapshot = Path.Combine(candidateDirectory, "sass.snapshot");
+            if (File.Exists(executable) && File.Exists(snapshot))
+            {
+                return (executable, snapshot);
+            }
         }
 
-        return Path.Combine(
-            outputDirectory,
-            "runtimes",
-            runtimeIdentifier,
-            "native",
-            "EmbeddedSass.Net.Compiler");
+        throw new FileNotFoundException(
+            $"Could not find the bundled Dart Sass files for '{runtimeIdentifier}'. " +
+            $"Searched: {string.Join(", ", candidateDirectories)}.");
     }
 
     [UnsupportedOSPlatform("windows")]
     private static void MakeExecutable(string path)
     {
-        UnixFileMode mode = File.GetUnixFileMode(path);
+        var mode = File.GetUnixFileMode(path);
         File.SetUnixFileMode(
             path,
             mode |

@@ -8,6 +8,31 @@ namespace EmbeddedSass.Net.IntegrationTests;
 
 public sealed class RealCompilerTests
 {
+    [Fact]
+    public void FindsCompilerFilesFlattenedIntoPublishDirectory()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var executable = Path.Combine(directory, "dart");
+            var snapshot = Path.Combine(directory, "sass.snapshot");
+            File.WriteAllText(executable, string.Empty);
+            File.WriteAllText(snapshot, string.Empty);
+
+            var files = BundledDartSass.FindCompilerFiles(
+                directory,
+                "linux-x64",
+                "dart");
+
+            Assert.Equal(executable, files.Executable);
+            Assert.Equal(snapshot, files.Snapshot);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(SassSyntax.Scss, "$color: red; a { color: $color; }")]
     [InlineData(SassSyntax.Indented, "$color: red\na\n  color: $color")]
