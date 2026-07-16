@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>MSBuild integration for compiling Sass with EmbeddedSass.Net.</Description>
+    <IsPackable>true</IsPackable>
+    <BuildOutputTargetFolder>tasks</BuildOutputTargetFolder>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <PackageId>EmbeddedSass.Net.MsBuild</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../EmbeddedSass.Net/EmbeddedSass.Net.csproj" PrivateAssets="All" />
+    <ProjectReference Include="../EmbeddedSass.Net.Compiler/EmbeddedSass.Net.Compiler.csproj" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="All" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" PrivateAssets="All" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(TargetDir)EmbeddedSass.Net.dll;$(TargetDir)EmbeddedSass.Net.Compiler.dll;$(TargetDir)Google.Protobuf.dll"
+          Pack="true"
+          PackagePath="tasks/net10.0/" />
+    <None Include="build/EmbeddedSass.Net.MsBuild.props" Pack="true" PackagePath="build/;buildTransitive/" />
+    <None Include="build/EmbeddedSass.Net.MsBuild.targets" Pack="true" PackagePath="build/;buildTransitive/" />
+    <None Include="../EmbeddedSass.Net.Compiler/runtimes/**/*"
+          Pack="true"
+          PackagePath="tasks/net10.0/runtimes/" />
+    <None Include="../EmbeddedSass.Net.Compiler/dart-sass-LICENSE"
+          Pack="true"
+          PackagePath="licenses/" />
+  </ItemGroup>
+
+</Project>

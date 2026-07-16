@@ -1,0 +1,69 @@
+<Project>
+  <ItemGroup Condition="'@(EmbeddedSass)' == '' and Exists('$(MSBuildProjectDirectory)/Sass')">
+    <EmbeddedSass Include="$(MSBuildProjectDirectory)/Sass">
+      <OutputPath>$(MSBuildProjectDirectory)/wwwroot/css</OutputPath>
+    </EmbeddedSass>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EmbeddedSassEnabled)' == 'true'">
+    <UpToDateCheckInput Include="$(MSBuildProjectDirectory)/**/*.scss;$(MSBuildProjectDirectory)/**/*.sass"
+                        Exclude="$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**;$(MSBuildProjectDirectory)/wwwroot/**" />
+  </ItemGroup>
+
+  <UsingTask TaskName="EmbeddedSass.Net.MsBuild.CompileSass"
+             AssemblyFile="$(EmbeddedSassTasksAssembly)" />
+
+  <Target Name="EmbeddedSassCompile"
+          DependsOnTargets="$(EmbeddedSassCompileDependsOn)"
+          BeforeTargets="PrepareForBuild;DispatchToInnerBuilds;ResolveProjectStaticWebAssets"
+          Condition="'$(EmbeddedSassEnabled)' == 'true'
+                     and '$(DesignTimeBuild)' != 'true'
+                     and ('$(IsCrossTargetingBuild)' == 'true' or '$(TargetFrameworks)' == '')">
+    <ReadLinesFromFile File="$(EmbeddedSassGeneratedFilesManifest)"
+                       Condition="Exists('$(EmbeddedSassGeneratedFilesManifest)')">
+      <Output TaskParameter="Lines" ItemName="_EmbeddedSassPreviousGeneratedFiles" />
+    </ReadLinesFromFile>
+
+    <CompileSass Compilations="@(EmbeddedSass)"
+                 ProjectDirectory="$(MSBuildProjectDirectory)"
+                 Configuration="$(Configuration)"
+                 OutputStyle="$(EmbeddedSassOutputStyle)"
+                 GenerateSourceMap="$(EmbeddedSassGenerateSourceMap)"
+                 IncludeSourcesInSourceMap="$(EmbeddedSassIncludeSourcesInSourceMap)"
+                 QuietDependencies="$(EmbeddedSassQuietDependencies)"
+                 SilencedDeprecations="$(EmbeddedSassSilencedDeprecations)"
+                 Condition="'@(EmbeddedSass)' != ''">
+      <Output TaskParameter="GeneratedFiles" ItemName="_EmbeddedSassGeneratedFiles" />
+      <Output TaskParameter="RemovedFiles" ItemName="_EmbeddedSassRemovedFiles" />
+    </CompileSass>
+
+    <ItemGroup>
+      <_EmbeddedSassStaleGeneratedFiles Include="@(_EmbeddedSassPreviousGeneratedFiles)"
+                                        Exclude="@(_EmbeddedSassGeneratedFiles)" />
+      <_EmbeddedSassRemovedFiles Include="$([System.IO.Path]::GetRelativePath('$(MSBuildProjectDirectory)', '%(_EmbeddedSassStaleGeneratedFiles.Identity)'))"
+                                 Condition="'@(_EmbeddedSassStaleGeneratedFiles)' != ''" />
+      <Content Remove="@(_EmbeddedSassRemovedFiles)" />
+      <None Remove="@(_EmbeddedSassRemovedFiles)" />
+      <_ContentIncludedByDefault Remove="@(_EmbeddedSassRemovedFiles)" />
+      <_EmbeddedSassNewContent Include="@(_EmbeddedSassGeneratedFiles)" Exclude="@(Content)" />
+      <Content Include="@(_EmbeddedSassNewContent)" CopyToPublishDirectory="PreserveNewest" />
+      <FileWrites Include="@(_EmbeddedSassGeneratedFiles)" />
+    </ItemGroup>
+
+    <Delete Files="@(_EmbeddedSassStaleGeneratedFiles)" />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(EmbeddedSassGeneratedFilesManifest)'))" />
+    <WriteLinesToFile File="$(EmbeddedSassGeneratedFilesManifest)"
+                      Lines="@(_EmbeddedSassGeneratedFiles)"
+                      Overwrite="true" />
+  </Target>
+
+  <Target Name="EmbeddedSassClean"
+          BeforeTargets="CoreClean"
+          Condition="Exists('$(EmbeddedSassGeneratedFilesManifest)')">
+    <ReadLinesFromFile File="$(EmbeddedSassGeneratedFilesManifest)">
+      <Output TaskParameter="Lines" ItemName="_EmbeddedSassFilesToClean" />
+    </ReadLinesFromFile>
+    <Delete Files="@(_EmbeddedSassFilesToClean)" />
+    <Delete Files="$(EmbeddedSassGeneratedFilesManifest)" />
+  </Target>
+</Project>

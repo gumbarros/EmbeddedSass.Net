@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <EmbeddedSassTasksAssembly>$(MSBuildThisFileDirectory)..\..\src\EmbeddedSass.Net.MsBuild\bin\$(Configuration)\net10.0\EmbeddedSass.Net.MsBuild.dll</EmbeddedSassTasksAssembly>
+    <EmbeddedSassCompileDependsOn>ResolveProjectReferences</EmbeddedSassCompileDependsOn>
+    <EmbeddedSassQuietDependencies>true</EmbeddedSassQuietDependencies>
+    <EmbeddedSassSilencedDeprecations>import</EmbeddedSassSilencedDeprecations>
+  </PropertyGroup>
+
+  <Import Project="../../src/EmbeddedSass.Net.MsBuild/build/EmbeddedSass.Net.MsBuild.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EmbeddedSass.Net.MsBuild\EmbeddedSass.Net.MsBuild.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedSass Include="Sass/site.scss">
+      <OutputPath>wwwroot/css/site.css</OutputPath>
+      <LoadPaths>Sass/Bootstrap</LoadPaths>
+    </EmbeddedSass>
+  </ItemGroup>
+
+  <Import Project="../../src/EmbeddedSass.Net.MsBuild/build/EmbeddedSass.Net.MsBuild.targets" />
+</Project>

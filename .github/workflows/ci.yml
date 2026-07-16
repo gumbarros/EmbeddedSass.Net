@@ -23,3 +23,4 @@ jobs:
       - run: dotnet pack src/EmbeddedSass.Net/EmbeddedSass.Net.csproj --configuration Release --no-build --output artifacts/packages
       - run: dotnet pack src/EmbeddedSass.Net.DependencyInjection/EmbeddedSass.Net.DependencyInjection.csproj --configuration Release --no-build --output artifacts/packages
       - run: dotnet pack src/EmbeddedSass.Net.Compiler/EmbeddedSass.Net.Compiler.csproj --configuration Release --no-build --output artifacts/packages
+      - run: dotnet pack src/EmbeddedSass.Net.MsBuild/EmbeddedSass.Net.MsBuild.csproj --configuration Release --no-build --output artifacts/packages

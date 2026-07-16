@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Bootstrap Sass sample";
+}
+
+<section class="sample-hero py-5 min-vh-100">
+    <div class="container py-5">
+        <div class="sample-card card mx-auto p-4 p-md-5" style="max-width: 48rem">
+            <div class="card-body">
+                <span class="badge text-bg-primary mb-3">Bootstrap 5.3</span>
+                <h1 class="display-5 fw-bold">Compiled by EmbeddedSass.Net.MsBuild</h1>
+                <p class="lead text-body-secondary">
+                    This MVC view uses a custom Bootstrap build whose primary color is
+                    overridden before Bootstrap is imported through an MSBuild load path.
+                </p>
+
+                <div class="alert alert-primary mt-4 mb-0">
+                    <code>Sass/Bootstrap</code> is configured as a load path, allowing
+                    <code>@@import "bootstrap"</code> in <code>Sass/site.scss</code>.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

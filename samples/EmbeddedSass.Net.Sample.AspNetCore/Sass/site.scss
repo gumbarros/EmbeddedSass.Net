@@ -1,0 +1,21 @@
+@use "theme";
+
+// The project adds Sass/Bootstrap as a load path, so this import resolves
+// Bootstrap/bootstrap.scss without coupling this file to a relative path.
+$primary: theme.$primary;
+$body-bg: theme.$surface;
+$body-color: theme.$body-color;
+$border-radius: 0.75rem;
+
+@import "bootstrap";
+
+.sample-hero {
+  background:
+    radial-gradient(circle at top right, rgba($primary, 0.2), transparent 35%),
+    $body-bg;
+}
+
+.sample-card {
+  border-top: 0.4rem solid $primary;
+  box-shadow: 0 1rem 3rem rgba($black, 0.12);
+}
