@@ -194,8 +194,10 @@ public sealed class RealCompilerTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => longCompilation);
 
-        var next = await compiler.CompileStringAsync("a { color: green; }", cancellationToken: cancellation.Token)
-            .WaitAsync(TimeSpan.FromSeconds(10), cancellation.Token);
+        // ReSharper disable once MethodSupportsCancellation
+        var next = await compiler.CompileStringAsync("a { color: green; }")
+            // ReSharper disable once MethodSupportsCancellation
+            .WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Contains("green", next.Css, StringComparison.Ordinal);
     }
 
