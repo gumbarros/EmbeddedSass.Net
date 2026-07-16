@@ -17,9 +17,9 @@ public sealed class DependencyInjectionTests
                 "missing",
                 "dart-sass"));
 
-        await using ServiceProvider provider = services.BuildServiceProvider();
-        ISassCompiler first = provider.GetRequiredService<ISassCompiler>();
-        ISassCompiler second = provider.GetRequiredService<ISassCompiler>();
+        await using var provider = services.BuildServiceProvider();
+        var first = provider.GetRequiredService<ISassCompiler>();
+        var second = provider.GetRequiredService<ISassCompiler>();
 
         Assert.Same(first, second);
         Assert.IsType<SassCompiler>(first);
@@ -30,10 +30,9 @@ public sealed class DependencyInjectionTests
     {
         var services = new ServiceCollection();
         services.AddEmbeddedSass(options => options.CompilerPath = "relative/dart-sass");
-        using ServiceProvider provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
 
-        OptionsValidationException exception = Assert.Throws<OptionsValidationException>(
-            () => provider.GetRequiredService<ISassCompiler>());
+        var exception = Assert.Throws<OptionsValidationException>(provider.GetRequiredService<ISassCompiler>);
 
         Assert.Contains("fully qualified", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

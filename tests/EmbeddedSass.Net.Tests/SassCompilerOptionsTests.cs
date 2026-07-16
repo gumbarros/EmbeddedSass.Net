@@ -10,7 +10,7 @@ public sealed class SassCompilerOptionsTests
     {
         var options = new SassCompilerOptions { CompilerPath = "dart-sass" };
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(
+        var exception = Assert.Throws<ArgumentException>(
             () => new SassCompiler(options));
 
         Assert.Contains("fully qualified", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -38,7 +38,7 @@ public sealed class SassCompilerOptionsTests
         };
         await using var compiler = new SassCompiler(options);
 
-        SassCompilerException exception = await Assert.ThrowsAsync<SassCompilerException>(
+        var exception = await Assert.ThrowsAsync<SassCompilerException>(
             () => compiler.CompileStringAsync("a {}"));
 
         Assert.Contains("does not exist", exception.Message, StringComparison.OrdinalIgnoreCase);

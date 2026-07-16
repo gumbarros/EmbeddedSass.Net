@@ -7,7 +7,7 @@ public sealed class PublicApiBoundaryTests
     [Fact]
     public void GeneratedProtocolTypesAreNotPublic()
     {
-        Assembly assembly = typeof(SassCompiler).Assembly;
+        var assembly = typeof(SassCompiler).Assembly;
 
         Assert.DoesNotContain(
             assembly.GetExportedTypes(),

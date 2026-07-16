@@ -9,7 +9,7 @@ public sealed class CompileRequestMapperTests
     [Fact]
     public void FilePathsAreNormalizedBeforeCreatingAPacket()
     {
-        MappedCompileRequest mapped = CompileRequestMapper.Map(
+        var mapped = CompileRequestMapper.Map(
             new SassCompileRequest(new SassFileInput("styles/main.scss"))
             {
                 LoadPaths = ["styles/shared"]
@@ -26,7 +26,7 @@ public sealed class CompileRequestMapperTests
         var request = new SassCompileRequest(
             new SassStringInput("a {}", Url: new Uri("relative.scss", UriKind.Relative)));
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(
+        var exception = Assert.Throws<ArgumentException>(
             () => CompileRequestMapper.Map(request));
 
         Assert.Contains("absolute", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -35,7 +35,7 @@ public sealed class CompileRequestMapperTests
     [Fact]
     public void CustomImportersPrecedeLoadPathsAndUseTheirProtocolKinds()
     {
-        MappedCompileRequest mapped = CompileRequestMapper.Map(
+        var mapped = CompileRequestMapper.Map(
             new SassCompileRequest(new SassStringInput("a {}"))
             {
                 Importers = [new ContentImporter(), new FileImporter()],
@@ -58,7 +58,7 @@ public sealed class CompileRequestMapperTests
             Importer = new ContentImporter()
         };
 
-        MappedCompileRequest mapped = CompileRequestMapper.Map(new SassCompileRequest(input));
+        var mapped = CompileRequestMapper.Map(new SassCompileRequest(input));
 
         Assert.Equal(1u, mapped.Message.CompileRequest.String.Importer.ImporterId);
         Assert.Empty(mapped.Message.CompileRequest.Importers);

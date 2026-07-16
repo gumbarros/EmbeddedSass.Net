@@ -7,33 +7,28 @@ namespace EmbeddedSass.Net.DependencyInjection;
 
 public static class EmbeddedSassServiceCollectionExtensions
 {
-    public static EmbeddedSassBuilder AddEmbeddedSass(
-        this IServiceCollection services,
-        Action<SassCompilerOptions> configure)
+    extension(IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configure);
+        public IServiceCollection AddEmbeddedSass(Action<SassCompilerOptions> configure)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(configure);
 
-        services.AddOptions<SassCompilerOptions>()
-            .Configure(configure)
-            .Services.TryAddEnumerable(
+            services.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IValidateOptions<SassCompilerOptions>, SassCompilerOptionsValidator>());
+            
+            services.AddOptions<SassCompilerOptions>()
+                .Configure(configure)
+                .ValidateOnStart();
 
-        services.TryAddSingleton(static provider =>
-            new SassCompiler(provider.GetRequiredService<IOptions<SassCompilerOptions>>().Value));
-        services.TryAddSingleton<ISassCompiler>(static provider =>
-            provider.GetRequiredService<SassCompiler>());
+            services.TryAddSingleton(static provider =>
+                new SassCompiler(provider.GetRequiredService<IOptions<SassCompilerOptions>>().Value));
+            services.TryAddSingleton<ISassCompiler>(static provider =>
+                provider.GetRequiredService<SassCompiler>());
 
-        return new EmbeddedSassBuilder(services);
+            return services;
+        }
     }
-
-    public static EmbeddedSassBuilder ValidateOptionsOnStart(this EmbeddedSassBuilder builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        builder.Services.AddOptions<SassCompilerOptions>().ValidateOnStart();
-        return builder;
-    }
-
     private sealed class SassCompilerOptionsValidator : IValidateOptions<SassCompilerOptions>
     {
         public ValidateOptionsResult Validate(string? name, SassCompilerOptions options)
@@ -49,10 +44,12 @@ public static class EmbeddedSassServiceCollectionExtensions
                 failures.Add("CompilerPath must be fully qualified.");
             }
 
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             if (options.CompilerArguments is null)
             {
                 failures.Add("CompilerArguments cannot be null.");
             }
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             else if (options.CompilerArguments.Any(static argument => argument is null))
             {
                 failures.Add("CompilerArguments cannot contain null values.");
