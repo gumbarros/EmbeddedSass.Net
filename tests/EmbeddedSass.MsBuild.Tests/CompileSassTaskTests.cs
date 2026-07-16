@@ -5,7 +5,7 @@ using Microsoft.Build.Utilities;
 
 namespace EmbeddedSass.MsBuild.Tests;
 
-public sealed class CompileSassTests
+public sealed class CompileSassTaskTests
 {
     [Fact]
     public void CompilesNonPartialFilesAndWritesDebugSourceMaps()
@@ -91,7 +91,7 @@ public sealed class CompileSassTests
             error => error.Message?.Contains("both map", StringComparison.Ordinal) == true);
     }
 
-    private static CompileSass CreateTask(
+    private static CompileSassTask CreateTask(
         string projectDirectory,
         IBuildEngine buildEngine,
         params ITaskItem[] items) =>

@@ -10,7 +10,7 @@
                         Exclude="$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**;$(MSBuildProjectDirectory)/wwwroot/**" />
   </ItemGroup>
 
-  <UsingTask TaskName="EmbeddedSass.Net.MsBuild.CompileSass"
+  <UsingTask TaskName="EmbeddedSass.Net.MsBuild.CompileSassTask"
              AssemblyFile="$(EmbeddedSassTasksAssembly)" />
 
   <Target Name="EmbeddedSassCompile"
@@ -24,18 +24,18 @@
       <Output TaskParameter="Lines" ItemName="_EmbeddedSassPreviousGeneratedFiles" />
     </ReadLinesFromFile>
 
-    <CompileSass Compilations="@(EmbeddedSass)"
-                 ProjectDirectory="$(MSBuildProjectDirectory)"
-                 Configuration="$(Configuration)"
-                 OutputStyle="$(EmbeddedSassOutputStyle)"
-                 GenerateSourceMap="$(EmbeddedSassGenerateSourceMap)"
-                 IncludeSourcesInSourceMap="$(EmbeddedSassIncludeSourcesInSourceMap)"
-                 QuietDependencies="$(EmbeddedSassQuietDependencies)"
-                 SilencedDeprecations="$(EmbeddedSassSilencedDeprecations)"
-                 Condition="'@(EmbeddedSass)' != ''">
+    <CompileSassTask Compilations="@(EmbeddedSass)"
+                     ProjectDirectory="$(MSBuildProjectDirectory)"
+                     Configuration="$(Configuration)"
+                     OutputStyle="$(EmbeddedSassOutputStyle)"
+                     GenerateSourceMap="$(EmbeddedSassGenerateSourceMap)"
+                     IncludeSourcesInSourceMap="$(EmbeddedSassIncludeSourcesInSourceMap)"
+                     QuietDependencies="$(EmbeddedSassQuietDependencies)"
+                     SilencedDeprecations="$(EmbeddedSassSilencedDeprecations)"
+                     Condition="'@(EmbeddedSass)' != ''">
       <Output TaskParameter="GeneratedFiles" ItemName="_EmbeddedSassGeneratedFiles" />
       <Output TaskParameter="RemovedFiles" ItemName="_EmbeddedSassRemovedFiles" />
-    </CompileSass>
+    </CompileSassTask>
 
     <ItemGroup>
       <_EmbeddedSassStaleGeneratedFiles Include="@(_EmbeddedSassPreviousGeneratedFiles)"
