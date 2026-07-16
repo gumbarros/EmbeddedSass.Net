@@ -21,7 +21,6 @@ Add the package to the project:
 
 ```csharp
 using EmbeddedSass.Net;
-using EmbeddedSass.Net.Compiler;
 
 await using var compiler = new SassCompiler(new SassCompilerOptions
 {
@@ -34,6 +33,11 @@ Console.WriteLine(result.Css);
 
 The optional compiler package contains the x64 and ARM64 builds for Windows,
 macOS, and Linux, removing the need to manage an external executable:
+
+```xml
+<PackageReference Include="EmbeddedSass.Net.Compiler"
+                  Version="1.0.2" />
+```
 
 ```csharp
 using EmbeddedSass.Net;
