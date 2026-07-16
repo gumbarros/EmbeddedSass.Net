@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- The competitor's runtime API needs its bundled Dart executable in Release output. -->
+        <SassCompilerIncludeRuntime>true</SassCompilerIncludeRuntime>
+        <!-- This project invokes the runtime API; it has no Sass files to compile during build. -->
+        <SassCompilerEnableBuildTask>false</SassCompilerEnableBuildTask>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AspNetCore.SassCompiler" />
+        <PackageReference Include="BenchmarkDotNet" />
+        <PackageReference Include="DartSassHost" />
+        <PackageReference Include="JavaScriptEngineSwitcher.Jint" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/EmbeddedSass.Net/EmbeddedSass.Net.csproj" />
+        <ProjectReference Include="../../src/EmbeddedSass.Net.Compiler/EmbeddedSass.Net.Compiler.csproj" />
+    </ItemGroup>
+
+</Project>

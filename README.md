@@ -127,6 +127,25 @@ Generated CSS and source-map files are registered as project content and include
 
 See the [EmbeddedSass.Net.Sample.AspNetCore](https://github.com/gumbarros/EmbeddedSass.Net/tree/main/samples/EmbeddedSass.Net.Sample.AspNetCore) sample for a complete application.
 
+## Benchmarks
+
+- BenchmarkDotNet 0.15.8
+- .NET SDK 10.0.110 / .NET 10.0.10
+- Linux Ubuntu 26.04, x64
+- Intel Core 7 150U, 10 physical cores and 12 logical cores
+- 3 warmup iterations, 3 measurement iterations, 1 launch
+
+| Compiler                                                                        |        Mean | Standard deviation | Ratio |   Allocated |
+| ------------------------------------------------------------------------------- | ----------: | -----------------: | ----: | ----------: |
+| EmbeddedSass.Net                |    824.0 us |           111.6 us |  1.01 |     7.98 KB |
+| [AspNetCore.SassCompiler](https://github.com/koenvzeijl/AspNetCore.SassCompiler) |  8,111.4 us |           197.2 us |  9.96 |   104.54 KB |
+| [DartSassHost (Jint)](https://github.com/Taritsyn/DartSassHost)                 | 65,665.3 us |         3,392.1 us | 80.62 | 4,203.17 KB |
+
+
+EmbeddedSass.Net starts an Embedded Sass process and reuses it across compilations. DartSassHost
+similarly reuses its initialized Jint engine. AspNetCore.SassCompiler instead launches a new Dart
+Sass process for every runtime compilation call.
+
 ## AI Notice
 AI tools were used as part of the development process and are disclosed here for transparency.
 The final code was reviewed, refactored and tested by a human (specifically me, [@gumbarros](https://www.github.com/gumbarros) ).

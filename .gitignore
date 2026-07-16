@@ -4,6 +4,7 @@ artifacts/
 .idea/
 .vs/
 TestResults/
+BenchmarkDotNet.Artifacts/
 *.user
 *.suo
 *.nupkg

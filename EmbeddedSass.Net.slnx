@@ -11,6 +11,9 @@
     <Project Path="tests/EmbeddedSass.Net.IntegrationTests/EmbeddedSass.Net.IntegrationTests.csproj" />
     <Project Path="tests/EmbeddedSass.MsBuild.Tests/EmbeddedSass.MsBuild.Tests.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="samples/EmbeddedSass.Net.Benchmarks/EmbeddedSass.Net.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/github/">
     <File Path=".github\workflows\ci.yml" />
   </Folder>
