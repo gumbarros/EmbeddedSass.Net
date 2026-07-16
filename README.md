@@ -49,8 +49,12 @@ var result = await compiler.CompileAsync(
 Add the package to the project:
 
 ```xml
-<PackageReference Include="EmbeddedSass.Net.MsBuild" Version="1.0.0" />
+<PackageReference Include="EmbeddedSass.Net.MsBuild"
+                  Version="1.0.0"
+                  PrivateAssets="all" />
 ```
+
+`PrivateAssets="all"` keeps this project-local build dependency from flowing to projects or packages that reference the project.
 
 ### Default behavior
 
