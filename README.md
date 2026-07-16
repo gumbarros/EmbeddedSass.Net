@@ -1,5 +1,10 @@
 # EmbeddedSass.Net
 
+[![CI](https://github.com/gumbarros/EmbeddedSass.Net/actions/workflows/ci.yml/badge.svg)](https://github.com/gumbarros/EmbeddedSass.Net/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/EmbeddedSass.Net.svg)](https://www.nuget.org/packages/EmbeddedSass.Net)
+[![NuGet downloads](https://img.shields.io/nuget/dt/EmbeddedSass.Net.svg)](https://www.nuget.org/packages/EmbeddedSass.Net)
+[![License](https://img.shields.io/github/license/gumbarros/EmbeddedSass.Net.svg)](LICENSE)
+
 EmbeddedSass.Net is a .NET implementation for the [Embedded Sass Protocol](https://github.com/sass/sass/blob/df76115b586b048f161a7545ae5d0557b99e2a28/spec/embedded-protocol.md#the-embedded-sass-protocol).
 
 The library runs a Dart Sass executable supplied by the
