@@ -53,7 +53,7 @@ internal sealed class CompilationOperation
 
     public bool TryAddLog(OutboundMessage.Types.LogEvent message)
     {
-        SassSourceSpan? span = message.Span is null
+        var span = message.Span is null
             ? null
             : SourceSpanMapper.Map(message.Span);
 
@@ -76,7 +76,7 @@ internal sealed class CompilationOperation
 
     public void HandleCanonicalize(OutboundMessage.Types.CanonicalizeRequest request)
     {
-        ISassContentImporter importer = GetImporter<ISassContentImporter>(
+        var importer = GetImporter<ISassContentImporter>(
             request.ImporterId,
             "canonicalize");
         var context = new SassCanonicalizeContext(
@@ -91,8 +91,8 @@ internal sealed class CompilationOperation
 
     public void HandleImport(OutboundMessage.Types.ImportRequest request)
     {
-        ISassContentImporter importer = GetImporter<ISassContentImporter>(request.ImporterId, "load");
-        Uri canonicalUrl = ParseUrl(request.Url, allowRelative: false, "canonical import URL");
+        var importer = GetImporter<ISassContentImporter>(request.ImporterId, "load");
+        var canonicalUrl = ParseUrl(request.Url, allowRelative: false, "canonical import URL");
         StartCallback(request.Id, () => ImportAsync(request.Id, importer, canonicalUrl));
     }
 
@@ -127,7 +127,7 @@ internal sealed class CompilationOperation
         {
             case OutboundMessage.Types.CompileResponse.ResultOneofCase.Success:
                 var seenUrls = new HashSet<string>(StringComparer.Ordinal);
-                foreach (string value in response.LoadedUrls)
+                foreach (var value in response.LoadedUrls)
                 {
                     if (!seenUrls.Add(value))
                     {

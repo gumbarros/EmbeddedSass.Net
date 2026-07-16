@@ -22,7 +22,6 @@
               GrpcServices="None"
               Access="Internal" />
     <None Include="Protocol/Schema/embedded_sass.proto" Pack="true" PackagePath="protocol" />
-    <None Include="Protocol/Schema/embedded-protocol.md" Pack="true" PackagePath="protocol" />
     <None Include="Protocol/Schema/EMBEDDED_PROTOCOL_VERSION" Pack="true" PackagePath="protocol" />
   </ItemGroup>
 </Project>

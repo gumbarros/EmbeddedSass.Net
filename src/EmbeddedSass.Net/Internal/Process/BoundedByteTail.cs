@@ -17,13 +17,13 @@ internal sealed class BoundedByteTail
 
     public void Append(ReadOnlySpan<byte> bytes)
     {
-        if (_buffer.Length == 0 || bytes.IsEmpty)
-        {
-            return;
-        }
-
         lock (_lock)
         {
+            if (_buffer.Length == 0 || bytes.IsEmpty)
+            {
+                return;
+            }
+            
             if (bytes.Length >= _buffer.Length)
             {
                 bytes[^_buffer.Length..].CopyTo(_buffer);

@@ -202,7 +202,7 @@ internal sealed class CompilationDispatcher : IDisposable
                 $"The compiler sent {message.MessageCase} with reserved compilation ID 0.");
         }
 
-        OutboundMessage.Types.VersionResponse response = message.VersionResponse;
+        var response = message.VersionResponse;
         if (response.Id != VersionRequestId)
         {
             throw new SassProtocolException(

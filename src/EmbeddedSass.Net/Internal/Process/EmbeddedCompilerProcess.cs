@@ -155,7 +155,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
             _process.Kill();
         }
 
-        _lifetime.Cancel();
+        await _lifetime.CancelAsync();
         _process.Kill();
 
         await AwaitIgnoringFailureAsync(_writerLoop).ConfigureAwait(false);
@@ -220,12 +220,12 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
 
     private async Task ReadStandardErrorAsync()
     {
-        byte[] buffer = new byte[4096];
+        var buffer = new byte[4096];
         try
         {
             while (true)
             {
-                int read = await _process.StandardError
+                var read = await _process.StandardError
                     .ReadAsync(buffer, _lifetime.Token)
                     .ConfigureAwait(false);
                 if (read == 0)
@@ -300,6 +300,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
         }
         catch
         {
+            // ignored
         }
     }
 }

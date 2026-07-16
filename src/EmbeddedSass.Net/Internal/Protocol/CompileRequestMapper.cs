@@ -151,7 +151,7 @@ internal static class CompileRequestMapper
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
             target.Importers.Add(new InboundMessage.Types.CompileRequest.Types.Importer
             {
-                Path = System.IO.Path.GetFullPath(path)
+                Path = Path.GetFullPath(path)
             });
         }
     }
@@ -162,7 +162,7 @@ internal static class CompileRequestMapper
         string parameterName)
     {
         ArgumentNullException.ThrowIfNull(values, parameterName);
-        foreach (string? value in values)
+        foreach (var value in values)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
