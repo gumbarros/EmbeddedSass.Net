@@ -8,5 +8,6 @@
     <EmbeddedSassSilencedDeprecations Condition="'$(EmbeddedSassSilencedDeprecations)' == ''"></EmbeddedSassSilencedDeprecations>
     <EmbeddedSassTasksAssembly Condition="'$(EmbeddedSassTasksAssembly)' == ''">$(MSBuildThisFileDirectory)..\tasks\net10.0\EmbeddedSass.Net.MsBuild.dll</EmbeddedSassTasksAssembly>
     <EmbeddedSassGeneratedFilesManifest Condition="'$(EmbeddedSassGeneratedFilesManifest)' == ''">$(BaseIntermediateOutputPath)$(Configuration)/EmbeddedSass.generated.txt</EmbeddedSassGeneratedFilesManifest>
+    <EmbeddedSassCacheFile Condition="'$(EmbeddedSassCacheFile)' == ''">$(BaseIntermediateOutputPath)$(Configuration)/EmbeddedSass.cache.json</EmbeddedSassCacheFile>
   </PropertyGroup>
 </Project>

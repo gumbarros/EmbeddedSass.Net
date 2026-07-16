@@ -16,7 +16,7 @@ internal static class CompilationOutputWriter
         bool removedSourceMap = false;
         if (sourceMaps && result.SourceMap is not null)
         {
-            File.WriteAllText(target + ".map", result.SourceMap);
+            WriteIfChanged(target + ".map", result.SourceMap);
             css = css.TrimEnd() + Environment.NewLine +
                   $"/*# sourceMappingURL={Path.GetFileName(target)}.map */" + Environment.NewLine;
         }
@@ -26,7 +26,18 @@ internal static class CompilationOutputWriter
             File.Delete(target + ".map");
         }
 
-        File.WriteAllText(target, css);
+        WriteIfChanged(target, css);
         return removedSourceMap;
+    }
+
+    private static void WriteIfChanged(string path, string contents)
+    {
+        if (File.Exists(path) &&
+            string.Equals(File.ReadAllText(path), contents, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        File.WriteAllText(path, contents);
     }
 }

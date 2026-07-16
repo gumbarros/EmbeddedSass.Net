@@ -72,6 +72,77 @@ public sealed class CompileSassTaskTests
     }
 
     [Fact]
+    public void SkipsCompilationWhenEntrypointAndDependenciesAreUnchanged()
+    {
+        using var directory = new TemporaryDirectory();
+        directory.Write("Sass/_theme.scss", "$accent: rebeccapurple;");
+        directory.Write("Sass/site.scss", "@use 'theme'; .site { color: theme.$accent; }");
+        var item = new TaskItem("Sass/site.scss");
+        item.SetMetadata("OutputPath", "wwwroot/site.css");
+
+        var first = CreateTask(directory.Path, new RecordingBuildEngine(), item);
+        Assert.True(first.Execute());
+        string css = directory.File("wwwroot/site.css");
+        string sourceMap = css + ".map";
+        string cache = directory.File("obj/EmbeddedSass.cache.json");
+        var preservedTimestamp = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(css, preservedTimestamp);
+        File.SetLastWriteTimeUtc(sourceMap, preservedTimestamp);
+        File.SetLastWriteTimeUtc(cache, preservedTimestamp);
+        var buildEngine = new RecordingBuildEngine();
+
+        var second = CreateTask(directory.Path, buildEngine, item);
+        Assert.True(second.Execute());
+
+        Assert.Contains(
+            buildEngine.Messages,
+            message => message.Message?.Contains("Skipping unchanged Sass", StringComparison.Ordinal) == true);
+        Assert.Equal(preservedTimestamp, File.GetLastWriteTimeUtc(css));
+        Assert.Equal(preservedTimestamp, File.GetLastWriteTimeUtc(sourceMap));
+        Assert.Equal(preservedTimestamp, File.GetLastWriteTimeUtc(cache));
+        Assert.Equal(2, second.GeneratedFiles.Length);
+    }
+
+    [Fact]
+    public void RecompilesWhenLoadedDependencyChanges()
+    {
+        using var directory = new TemporaryDirectory();
+        directory.Write("Sass/_theme.scss", "$accent: red;");
+        directory.Write("Sass/site.scss", "@use 'theme'; .site { color: theme.$accent; }");
+        var item = new TaskItem("Sass/site.scss");
+        item.SetMetadata("OutputPath", "wwwroot/site.css");
+
+        Assert.True(CreateTask(directory.Path, new RecordingBuildEngine(), item).Execute());
+        directory.Write("Sass/_theme.scss", "$accent: rebeccapurple;");
+
+        Assert.True(CreateTask(directory.Path, new RecordingBuildEngine(), item).Execute());
+
+        Assert.Contains("rebeccapurple", File.ReadAllText(directory.File("wwwroot/site.css")));
+    }
+
+    [Fact]
+    public void RecompilingIdenticalResultsPreservesOutputTimestamps()
+    {
+        using var directory = new TemporaryDirectory();
+        directory.Write("Sass/site.scss", ".site { color: red; }");
+        var item = new TaskItem("Sass/site.scss");
+        item.SetMetadata("OutputPath", "wwwroot/site.css");
+
+        Assert.True(CreateTask(directory.Path, new RecordingBuildEngine(), item).Execute());
+        string css = directory.File("wwwroot/site.css");
+        string sourceMap = css + ".map";
+        var preservedTimestamp = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(css, preservedTimestamp);
+        File.SetLastWriteTimeUtc(sourceMap, preservedTimestamp);
+        File.Delete(directory.File("obj/EmbeddedSass.cache.json"));
+
+        Assert.True(CreateTask(directory.Path, new RecordingBuildEngine(), item).Execute());
+
+        Assert.Equal(preservedTimestamp, File.GetLastWriteTimeUtc(css));
+        Assert.Equal(preservedTimestamp, File.GetLastWriteTimeUtc(sourceMap));
+    }
+
+    [Fact]
     public void RejectsOutputCollisions()
     {
         using var directory = new TemporaryDirectory();
@@ -99,6 +170,7 @@ public sealed class CompileSassTaskTests
         {
             BuildEngine = buildEngine,
             ProjectDirectory = projectDirectory,
+            CacheFile = "obj/EmbeddedSass.cache.json",
             Configuration = "Debug",
             Compilations = items
         };
@@ -107,6 +179,7 @@ public sealed class CompileSassTaskTests
     {
         public List<BuildErrorEventArgs> Errors { get; } = [];
         public List<BuildWarningEventArgs> Warnings { get; } = [];
+        public List<BuildMessageEventArgs> Messages { get; } = [];
 
         public bool ContinueOnError => false;
         public int LineNumberOfTaskNode => 0;
@@ -115,7 +188,7 @@ public sealed class CompileSassTaskTests
 
         public void LogErrorEvent(BuildErrorEventArgs e) => Errors.Add(e);
         public void LogWarningEvent(BuildWarningEventArgs e) => Warnings.Add(e);
-        public void LogMessageEvent(BuildMessageEventArgs e) { }
+        public void LogMessageEvent(BuildMessageEventArgs e) => Messages.Add(e);
         public void LogCustomEvent(CustomBuildEventArgs e) { }
 
         public bool BuildProjectFile(

@@ -8,11 +8,9 @@ public sealed class CompileSassTask : Microsoft.Build.Utilities.Task, ICancelabl
 {
     private readonly CancellationTokenSource _cancellation = new();
 
-    [Required]
-    public ITaskItem[] Compilations { get; set; } = [];
+    [Required] public ITaskItem[] Compilations { get; set; } = [];
 
-    [Required]
-    public string ProjectDirectory { get; set; } = string.Empty;
+    [Required] public string ProjectDirectory { get; set; } = string.Empty;
 
     public string Configuration { get; set; } = "Debug";
 
@@ -26,11 +24,11 @@ public sealed class CompileSassTask : Microsoft.Build.Utilities.Task, ICancelabl
 
     public string SilencedDeprecations { get; set; } = string.Empty;
 
-    [Output]
-    public ITaskItem[] GeneratedFiles { get; private set; } = [];
+    public string CacheFile { get; set; } = string.Empty;
 
-    [Output]
-    public ITaskItem[] RemovedFiles { get; private set; } = [];
+    [Output] public ITaskItem[] GeneratedFiles { get; private set; } = [];
+
+    [Output] public ITaskItem[] RemovedFiles { get; private set; } = [];
 
     public override bool Execute()
     {
@@ -78,11 +76,19 @@ public sealed class CompileSassTask : Microsoft.Build.Utilities.Task, ICancelabl
             return true;
         }
 
+        var compilerOptions = CompilerLocator.CreateOptions();
+        var cacheFile = string.IsNullOrWhiteSpace(CacheFile)
+            ? Path.Combine(ProjectDirectory, "obj", "EmbeddedSass.cache.json")
+            : Path.GetFullPath(
+                Path.IsPathFullyQualified(CacheFile)
+                    ? CacheFile
+                    : Path.Combine(ProjectDirectory, CacheFile));
         await using var executor = new SassCompilationExecutor(
-            CompilerLocator.CreateOptions(),
+            compilerOptions,
             Log,
-            SplitList(SilencedDeprecations));
-        CompilationOutputs outputs = await executor.ExecuteAsync(
+            SplitList(SilencedDeprecations),
+            cacheFile);
+        var outputs = await executor.ExecuteAsync(
             entries,
             style,
             sourceMaps,
@@ -99,7 +105,7 @@ public sealed class CompileSassTask : Microsoft.Build.Utilities.Task, ICancelabl
         GeneratedFiles = outputs.GeneratedFiles
             .Select(static path => (ITaskItem)new TaskItem(path))
             .ToArray();
-        string projectDirectory = Path.GetFullPath(ProjectDirectory);
+        var projectDirectory = Path.GetFullPath(ProjectDirectory);
         RemovedFiles = outputs.RemovedFiles
             .Select(ITaskItem (path) => new TaskItem(Path.GetRelativePath(projectDirectory, path)))
             .ToArray();
@@ -111,7 +117,7 @@ public sealed class CompileSassTask : Microsoft.Build.Utilities.Task, ICancelabl
         out bool includeSources,
         out bool quietDependencies)
     {
-        bool debug = string.Equals(Configuration, "Debug", StringComparison.OrdinalIgnoreCase);
+        var debug = string.Equals(Configuration, "Debug", StringComparison.OrdinalIgnoreCase);
         outputStyle = debug ? SassOutputStyle.Expanded : SassOutputStyle.Compressed;
         generateSourceMap = debug;
         includeSources = true;

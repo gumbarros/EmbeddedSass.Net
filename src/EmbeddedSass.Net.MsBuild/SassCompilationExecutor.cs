@@ -13,16 +13,19 @@ internal sealed class SassCompilationExecutor : IAsyncDisposable
     private readonly TaskLoggingHelper _log;
     private readonly int _maxConcurrentCompilations;
     private readonly IReadOnlyList<string> _silencedDeprecations;
+    private readonly CompilationCache _cache;
 
     public SassCompilationExecutor(
         SassCompilerOptions options,
         TaskLoggingHelper log,
-        IReadOnlyList<string> silencedDeprecations)
+        IReadOnlyList<string> silencedDeprecations,
+        string cacheFile)
     {
         _compiler = new SassCompiler(options);
         _log = log;
         _maxConcurrentCompilations = options.MaxConcurrentCompilations;
         _silencedDeprecations = silencedDeprecations;
+        _cache = CompilationCache.Load(cacheFile, options);
     }
 
     public async Task<CompilationOutputs> ExecuteAsync(
@@ -33,11 +36,13 @@ internal sealed class SassCompilationExecutor : IAsyncDisposable
         bool quietDependencies,
         CancellationToken cancellationToken)
     {
+        var compilationEntries = entries.ToArray();
+        _cache.Retain(compilationEntries);
         var generated = new ConcurrentBag<string>();
         var removed = new ConcurrentBag<string>();
 
         await Parallel.ForEachAsync(
-            entries,
+            compilationEntries,
             new ParallelOptions
             {
                 CancellationToken = cancellationToken,
@@ -47,6 +52,23 @@ internal sealed class SassCompilationExecutor : IAsyncDisposable
             {
                 try
                 {
+                    string settingsFingerprint = CompilationCache.CreateSettingsFingerprint(
+                        entry,
+                        style,
+                        sourceMaps,
+                        includeSources,
+                        quietDependencies,
+                        _silencedDeprecations);
+                    if (_cache.IsFresh(entry, settingsFingerprint, sourceMaps))
+                    {
+                        _log.LogMessage(
+                            MessageImportance.Low,
+                            "Skipping unchanged Sass '{0}'.",
+                            entry.Source);
+                        AddGeneratedFiles(entry.Target, sourceMaps, generated);
+                        return;
+                    }
+
                     _log.LogMessage(
                         MessageImportance.Normal,
                         "Compiling Sass '{0}' to '{1}'.",
@@ -68,11 +90,8 @@ internal sealed class SassCompilationExecutor : IAsyncDisposable
                         removed.Add(entry.Target + ".map");
                     }
 
-                    generated.Add(entry.Target);
-                    if (sourceMaps && result.SourceMap is not null)
-                    {
-                        generated.Add(entry.Target + ".map");
-                    }
+                    AddGeneratedFiles(entry.Target, sourceMaps && result.SourceMap is not null, generated);
+                    _cache.Record(entry, settingsFingerprint, result);
                 }
                 catch (SassCompilationException exception)
                 {
@@ -84,12 +103,26 @@ internal sealed class SassCompilationExecutor : IAsyncDisposable
                 }
             }).ConfigureAwait(false);
 
+        _cache.Save();
+
         return new CompilationOutputs(
             generated.Order(StringComparer.OrdinalIgnoreCase).ToArray(),
             removed.Order(StringComparer.OrdinalIgnoreCase).ToArray());
     }
 
     public ValueTask DisposeAsync() => _compiler.DisposeAsync();
+
+    private static void AddGeneratedFiles(
+        string target,
+        bool sourceMap,
+        ConcurrentBag<string> generated)
+    {
+        generated.Add(target);
+        if (sourceMap)
+        {
+            generated.Add(target + ".map");
+        }
+    }
 
     private ValueTask LogSassEvent(SassLogEvent logEvent, CancellationToken cancellationToken)
     {

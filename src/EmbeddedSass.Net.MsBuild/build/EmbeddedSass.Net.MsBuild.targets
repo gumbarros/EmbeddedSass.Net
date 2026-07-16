@@ -32,6 +32,7 @@
                      IncludeSourcesInSourceMap="$(EmbeddedSassIncludeSourcesInSourceMap)"
                      QuietDependencies="$(EmbeddedSassQuietDependencies)"
                      SilencedDeprecations="$(EmbeddedSassSilencedDeprecations)"
+                     CacheFile="$(EmbeddedSassCacheFile)"
                      Condition="'@(EmbeddedSass)' != ''">
       <Output TaskParameter="GeneratedFiles" ItemName="_EmbeddedSassGeneratedFiles" />
       <Output TaskParameter="RemovedFiles" ItemName="_EmbeddedSassRemovedFiles" />
@@ -65,5 +66,6 @@
     </ReadLinesFromFile>
     <Delete Files="@(_EmbeddedSassFilesToClean)" />
     <Delete Files="$(EmbeddedSassGeneratedFilesManifest)" />
+    <Delete Files="$(EmbeddedSassCacheFile)" />
   </Target>
 </Project>
