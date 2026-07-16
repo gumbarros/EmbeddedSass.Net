@@ -10,9 +10,14 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <VersionPrefix>1.0.0</VersionPrefix>
     <Authors>gumbarros and EmbeddedSass.Net contributors</Authors>
+    <Copyright>Copyright (c) gumbarros and EmbeddedSass.Net contributors</Copyright>
+    <PackageProjectUrl>https://github.com/gumbarros/EmbeddedSass.Net</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/gumbarros/EmbeddedSass.Net/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/gumbarros/EmbeddedSass.Net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageTags>sass;scss;dart-sass;embedded-sass</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
