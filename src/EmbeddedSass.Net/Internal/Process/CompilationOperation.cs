@@ -9,7 +9,7 @@ namespace EmbeddedSass.Net.Internal.Process;
 
 internal sealed class CompilationOperation
 {
-    private readonly Channel<SassLogEvent> _logs;
+    private readonly Channel<SassLogEvent>? _logs;
     private readonly SassLogHandler? _logHandler;
     private readonly CancellationToken _connectionCancellation;
     private readonly Action _release;
@@ -19,6 +19,7 @@ internal sealed class CompilationOperation
     private readonly Action<Exception> _fatalCallbackFailure;
     private readonly HashSet<uint> _pendingCallbackIds = [];
     private readonly Lock _callbackGate = new();
+    private int _completed;
 
     public CompilationOperation(uint compilationId,
         SassLogHandler? logHandler,
@@ -36,13 +37,20 @@ internal sealed class CompilationOperation
         _sendAsync = sendAsync;
         _fatalCallbackFailure = fatalCallbackFailure;
         _release = release;
-        _logs = Channel.CreateBounded<SassLogEvent>(new BoundedChannelOptions(maximumPendingLogs)
+        if (logHandler is null)
         {
-            SingleReader = true,
-            SingleWriter = true,
-            FullMode = BoundedChannelFullMode.Wait
-        });
-        _logWorker = RunLogWorkerAsync();
+            _logWorker = Task.CompletedTask;
+        }
+        else
+        {
+            _logs = Channel.CreateBounded<SassLogEvent>(new BoundedChannelOptions(maximumPendingLogs)
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                FullMode = BoundedChannelFullMode.Wait
+            });
+            _logWorker = RunLogWorkerAsync();
+        }
     }
 
     public uint CompilationId { get; }
@@ -55,15 +63,22 @@ internal sealed class CompilationOperation
         var span = message.Span is null
             ? null
             : SourceSpanMapper.Map(message.Span);
+        
+        var level = message.Type switch
+        {
+            LogEventType.Warning => SassLogLevel.Warning,
+            LogEventType.DeprecationWarning => SassLogLevel.DeprecationWarning,
+            LogEventType.Debug => SassLogLevel.Debug,
+            _ => throw new SassProtocolException($"Unknown log event type {message.Type}.")
+        };
+
+        if (_logs is null)
+        {
+            return true;
+        }
 
         var logEvent = new SassLogEvent(
-            message.Type switch
-            {
-                LogEventType.Warning => SassLogLevel.Warning,
-                LogEventType.DeprecationWarning => SassLogLevel.DeprecationWarning,
-                LogEventType.Debug => SassLogLevel.Debug,
-                _ => throw new SassProtocolException($"Unknown log event type {message.Type}.")
-            },
+            level,
             message.Message,
             message.Formatted,
             span,
@@ -97,7 +112,7 @@ internal sealed class CompilationOperation
 
     public void HandleFileImport(OutboundMessage.Types.FileImportRequest request)
     {
-        ISassFileImporter importer = GetImporter<ISassFileImporter>(
+        var importer = GetImporter<ISassFileImporter>(
             request.ImporterId,
             "file import");
         var context = new SassFileImportContext(
@@ -112,11 +127,12 @@ internal sealed class CompilationOperation
 
     public void Complete(OutboundMessage.Types.CompileResponse response)
     {
-        if (!_logs.Writer.TryComplete())
+        if (Interlocked.Exchange(ref _completed, 1) != 0)
         {
             return;
         }
 
+        _logs?.Writer.TryComplete();
         _ = CompleteAfterLogsAsync(response);
     }
 
@@ -158,11 +174,12 @@ internal sealed class CompilationOperation
 
     public void Fail(Exception exception)
     {
-        if (!_logs.Writer.TryComplete(exception))
+        if (Interlocked.Exchange(ref _completed, 1) != 0)
         {
             return;
         }
 
+        _logs?.Writer.TryComplete(exception);
         Completion.TrySetException(exception);
         _release();
     }
@@ -180,7 +197,7 @@ internal sealed class CompilationOperation
                     break;
 
                 case OutboundMessage.Types.CompileResponse.ResultOneofCase.Failure:
-                    OutboundMessage.Types.CompileResponse.Types.CompileFailure failure = response.Failure;
+                    var failure = response.Failure;
                     Completion.TrySetException(new SassCompilationException(
                         failure.Message,
                         failure.Formatted,
@@ -210,7 +227,7 @@ internal sealed class CompilationOperation
         var loadedUrls = new Uri[response.LoadedUrls.Count];
         for (int index = 0; index < loadedUrls.Length; index++)
         {
-            string value = response.LoadedUrls[index];
+            var value = response.LoadedUrls[index];
             if (!Uri.TryCreate(value, UriKind.Absolute, out var url) || !url.IsAbsoluteUri)
             {
                 throw new SassProtocolException($"Loaded URL '{value}' is not absolute.");
@@ -416,18 +433,11 @@ internal sealed class CompilationOperation
 
     private async Task RunLogWorkerAsync()
     {
-        if (_logHandler is null)
-        {
-            await foreach (var _ in _logs.Reader.ReadAllAsync(_connectionCancellation)
-                .ConfigureAwait(false))
-            {
-            }
-
+        if (_logs == null || _logHandler == null)
             return;
-        }
-
+        
         await foreach (var logEvent in _logs.Reader.ReadAllAsync(_connectionCancellation)
-            .ConfigureAwait(false))
+                           .ConfigureAwait(false))
         {
             await _logHandler(logEvent, _connectionCancellation).ConfigureAwait(false);
         }

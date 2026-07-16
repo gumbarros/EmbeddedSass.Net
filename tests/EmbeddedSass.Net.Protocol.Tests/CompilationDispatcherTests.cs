@@ -29,7 +29,7 @@ public sealed class CompilationDispatcherTests
                 }
             }));
 
-        SassCompilerInfo info = await dispatcher.Version;
+        var info = await dispatcher.Version;
         Assert.Equal("3.2.0", info.ProtocolVersion);
     }
 
@@ -38,7 +38,7 @@ public sealed class CompilationDispatcherTests
     {
         using var dispatcher = CreateDispatcher();
 
-        SassProtocolException exception = Assert.Throws<SassProtocolException>(() =>
+        var exception = Assert.Throws<SassProtocolException>(() =>
             dispatcher.Dispatch(Packet(42, Success("unused"))));
 
         Assert.Contains("unknown compilation ID 42", exception.Message);
@@ -48,8 +48,8 @@ public sealed class CompilationDispatcherTests
     public async Task TerminalResponseCompletesAndRemovesOperation()
     {
         using var dispatcher = CreateDispatcher();
-        CompilationOperation operation = await dispatcher.RegisterAsync(null, CancellationToken.None);
-        ProtocolPacket response = Packet(operation.CompilationId, Success("compiled"));
+        var operation = await dispatcher.RegisterAsync(null, CancellationToken.None);
+        var response = Packet(operation.CompilationId, Success("compiled"));
 
         dispatcher.Dispatch(response);
 
@@ -61,9 +61,9 @@ public sealed class CompilationDispatcherTests
     public async Task UnsupportedFunctionCallbackIsRejected()
     {
         using var dispatcher = CreateDispatcher();
-        CompilationOperation operation = await dispatcher.RegisterAsync(null, CancellationToken.None);
+        var operation = await dispatcher.RegisterAsync(null, CancellationToken.None);
 
-        SassProtocolException exception = Assert.Throws<SassProtocolException>(() =>
+        var exception = Assert.Throws<SassProtocolException>(() =>
             dispatcher.Dispatch(Packet(
                 operation.CompilationId,
                 new OutboundMessage
@@ -88,8 +88,8 @@ public sealed class CompilationDispatcherTests
         });
         var importer = new RecordingContentImporter();
         var registry = new ImporterRegistry();
-        uint importerId = registry.Register(importer);
-        CompilationOperation operation = await dispatcher.RegisterAsync(
+        var importerId = registry.Register(importer);
+        var operation = await dispatcher.RegisterAsync(
             null,
             CancellationToken.None,
             registry);
@@ -108,7 +108,7 @@ public sealed class CompilationDispatcherTests
                 }
             }));
 
-        InboundMessage response = await sent.Task;
+        var response = await sent.Task;
         Assert.Equal(9u, response.CanonicalizeResponse.Id);
         Assert.Equal("virtual:theme", response.CanonicalizeResponse.Url);
         Assert.True(response.CanonicalizeResponse.ContainingUrlUnused);
@@ -128,8 +128,8 @@ public sealed class CompilationDispatcherTests
             return Task.CompletedTask;
         });
         var registry = new ImporterRegistry();
-        uint importerId = registry.Register(new ThrowingContentImporter());
-        CompilationOperation operation = await dispatcher.RegisterAsync(
+        var importerId = registry.Register(new ThrowingContentImporter());
+        var operation = await dispatcher.RegisterAsync(
             null,
             CancellationToken.None,
             registry);
@@ -146,7 +146,7 @@ public sealed class CompilationDispatcherTests
                 }
             }));
 
-        InboundMessage response = await sent.Task;
+        var response = await sent.Task;
         Assert.Equal("could not load theme", response.ImportResponse.Error);
         dispatcher.FailAll(new OperationCanceledException());
     }
@@ -162,8 +162,8 @@ public sealed class CompilationDispatcherTests
             return Task.CompletedTask;
         });
         var registry = new ImporterRegistry();
-        uint importerId = registry.Register(new RecordingFileImporter());
-        CompilationOperation operation = await dispatcher.RegisterAsync(
+        var importerId = registry.Register(new RecordingFileImporter());
+        var operation = await dispatcher.RegisterAsync(
             null,
             CancellationToken.None,
             registry);
@@ -180,9 +180,9 @@ public sealed class CompilationDispatcherTests
                 }
             }));
 
-        InboundMessage response = await sent.Task;
+        var response = await sent.Task;
         Assert.Equal(11u, response.FileImportResponse.Id);
-        Assert.True(Uri.TryCreate(response.FileImportResponse.FileUrl, UriKind.Absolute, out Uri? fileUrl));
+        Assert.True(Uri.TryCreate(response.FileImportResponse.FileUrl, UriKind.Absolute, out var fileUrl));
         Assert.True(fileUrl.IsFile);
         dispatcher.FailAll(new OperationCanceledException());
     }
@@ -206,13 +206,13 @@ public sealed class CompilationDispatcherTests
                 return Task.CompletedTask;
             });
         var registry = new ImporterRegistry();
-        uint importerId = registry.Register(
+        var importerId = registry.Register(
             new BlockingContentImporter(callbackEntered, releaseCallback));
-        CompilationOperation waiting = await dispatcher.RegisterAsync(
+        var waiting = await dispatcher.RegisterAsync(
             null,
             CancellationToken.None,
             registry);
-        CompilationOperation independent = await dispatcher.RegisterAsync(
+        var independent = await dispatcher.RegisterAsync(
             null,
             CancellationToken.None);
 
@@ -241,8 +241,8 @@ public sealed class CompilationDispatcherTests
     public async Task FailAllFailsEveryPendingOperation()
     {
         using var dispatcher = CreateDispatcher(maximumConcurrentCompilations: 2);
-        CompilationOperation first = await dispatcher.RegisterAsync(null, CancellationToken.None);
-        CompilationOperation second = await dispatcher.RegisterAsync(null, CancellationToken.None);
+        var first = await dispatcher.RegisterAsync(null, CancellationToken.None);
+        var second = await dispatcher.RegisterAsync(null, CancellationToken.None);
         var failure = new IOException("compiler stopped");
 
         dispatcher.FailAll(failure);
@@ -262,14 +262,14 @@ public sealed class CompilationDispatcherTests
             maximumConcurrentCompilations: 1,
             maximumPendingLogs: 1,
             CancellationToken.None);
-        CompilationOperation operation = await dispatcher.RegisterAsync(
+        var operation = await dispatcher.RegisterAsync(
             async (_, _) =>
             {
                 handlerEntered.TrySetResult();
                 await releaseHandler.Task;
             },
             CancellationToken.None);
-        ProtocolPacket log = Packet(
+        var log = Packet(
             operation.CompilationId,
             new OutboundMessage
             {
@@ -284,13 +284,43 @@ public sealed class CompilationDispatcherTests
         await handlerEntered.Task;
         dispatcher.Dispatch(log);
 
-        SassProtocolException exception = Assert.Throws<SassProtocolException>(() =>
+        var exception = Assert.Throws<SassProtocolException>(() =>
             dispatcher.Dispatch(log));
 
         Assert.Contains("pending log event limit", exception.Message);
         releaseHandler.TrySetResult();
         dispatcher.FailAll(exception);
         await Assert.ThrowsAsync<SassProtocolException>(() => operation.Completion.Task);
+    }
+
+    [Fact]
+    public async Task LogsAreDiscardedWithoutQueueingWhenThereIsNoHandler()
+    {
+        using var dispatcher = new CompilationDispatcher(
+            maximumConcurrentCompilations: 1,
+            maximumPendingLogs: 1,
+            CancellationToken.None);
+        var operation = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None);
+        var log = Packet(
+            operation.CompilationId,
+            new OutboundMessage
+            {
+                LogEvent = new OutboundMessage.Types.LogEvent
+                {
+                    Type = LogEventType.Warning,
+                    Message = "discarded"
+                }
+            });
+
+        for (var index = 0; index < 10; index++)
+        {
+            dispatcher.Dispatch(log);
+        }
+
+        dispatcher.Dispatch(Packet(operation.CompilationId, Success("compiled")));
+        Assert.Equal("compiled", (await operation.Completion.Task).Css);
     }
 
     private static CompilationDispatcher CreateDispatcher(
