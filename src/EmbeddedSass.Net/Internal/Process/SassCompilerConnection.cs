@@ -19,7 +19,12 @@ internal sealed class SassCompilerConnection(
         MappedCompileRequest request,
         CancellationToken cancellationToken)
     {
-        var runtime = await GetRuntimeAsync(cancellationToken).ConfigureAwait(false);
+        var runtime = Volatile.Read(ref _runtime);
+        if (runtime is not { IsAvailable: true })
+        {
+            runtime = await GetRuntimeAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         return await runtime.CompileAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
@@ -33,11 +38,11 @@ internal sealed class SassCompilerConnection(
                 return;
             }
 
+            var runtime = Interlocked.Exchange(ref _runtime, null);
             _disposed = true;
-            if (_runtime is not null)
+            if (runtime is not null)
             {
-                await _runtime.DisposeAsync().ConfigureAwait(false);
-                _runtime = null;
+                await runtime.DisposeAsync().ConfigureAwait(false);
             }
         }
         finally
@@ -52,7 +57,7 @@ internal sealed class SassCompilerConnection(
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            var current = _runtime;
+            var current = Volatile.Read(ref _runtime);
             if (current is { IsAvailable: true })
             {
                 return current;
@@ -65,8 +70,8 @@ internal sealed class SassCompilerConnection(
 
             current = await EmbeddedCompilerProcess.StartAsync(options, _launcher, cancellationToken)
                 .ConfigureAwait(false);
-            _runtime = current;
             Info = current.Info;
+            Volatile.Write(ref _runtime, current);
             return current;
         }
         finally
