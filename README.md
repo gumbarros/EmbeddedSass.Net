@@ -1,4 +1,4 @@
-# EmbeddedSass.Net
+# ![EmbeddedSass.Net](Logo.png)
 
 EmbeddedSass.Net is an asynchronous, thread-safe .NET host for the [Embedded Sass Protocol](https://github.com/sass/sass/blob/main/spec/embedded-protocol.md#the-embedded-sass-protocol).
 
@@ -6,6 +6,9 @@ The library runs a trusted Embedded Dart Sass executable supplied by the
 application or by the optional compiler package.
 
 ```csharp
+using EmbeddedSass.Net;
+using EmbeddedSass.Net.Compiler;
+
 await using var compiler = new SassCompiler(new SassCompilerOptions
 {
     CompilerPath = "/absolute/path/to/dart-sass"
@@ -19,6 +22,8 @@ The optional compiler package contains the x64 and ARM64 builds for Windows,
 macOS, and Linux, removing the need to manage an external executable:
 
 ```csharp
+using EmbeddedSass.Net;
+using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.Compiler;
 
 var options = new SassCompilerOptions().UseBundledDartSass();
