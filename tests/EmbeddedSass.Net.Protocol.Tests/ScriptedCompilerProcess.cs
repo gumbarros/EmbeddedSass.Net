@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
-using Google.Protobuf;
-using Sass.EmbeddedProtocol;
 using EmbeddedSass.Net.Internal.Process;
 using EmbeddedSass.Net.Internal.Protocol;
 using EmbeddedSass.Net.Internal.Transport;
+using Google.Protobuf;
+using Sass.EmbeddedProtocol;
 
 namespace EmbeddedSass.Net.Protocol.Tests;
 

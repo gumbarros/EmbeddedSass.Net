@@ -1,9 +1,9 @@
 using System.Threading.Channels;
-using Sass.EmbeddedProtocol;
 using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.Diagnostics;
 using EmbeddedSass.Net.Importing;
 using EmbeddedSass.Net.Internal.Protocol;
+using Sass.EmbeddedProtocol;
 
 namespace EmbeddedSass.Net.Internal.Process;
 
@@ -135,7 +135,7 @@ internal sealed class CompilationOperation
                             $"Compile response contains duplicate loaded URL '{value}'.");
                     }
 
-                    if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? url) || !url.IsAbsoluteUri)
+                    if (!Uri.TryCreate(value, UriKind.Absolute, out var url) || !url.IsAbsoluteUri)
                     {
                         throw new SassProtocolException($"Loaded URL '{value}' is not absolute.");
                     }

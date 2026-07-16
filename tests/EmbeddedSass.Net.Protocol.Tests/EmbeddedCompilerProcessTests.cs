@@ -1,9 +1,9 @@
 using System.Buffers;
-using Sass.EmbeddedProtocol;
 using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.Diagnostics;
 using EmbeddedSass.Net.Internal.Process;
 using EmbeddedSass.Net.Internal.Protocol;
+using Sass.EmbeddedProtocol;
 
 namespace EmbeddedSass.Net.Protocol.Tests;
 

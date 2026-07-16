@@ -1,8 +1,8 @@
-using Google.Protobuf;
 using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.Diagnostics;
 using EmbeddedSass.Net.Internal.Protocol;
 using EmbeddedSass.Net.Internal.Transport;
+using Google.Protobuf;
 
 namespace EmbeddedSass.Net.Internal.Process;
 
@@ -49,7 +49,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
         _exitLoop = ObserveExitAsync();
     }
 
-    public SassCompilerInfo Info { get; private set; } = null!;
+    public SassCompilerInfo? Info { get; private set; }
 
     public bool IsAvailable => !_terminated.Task.IsCompleted;
 

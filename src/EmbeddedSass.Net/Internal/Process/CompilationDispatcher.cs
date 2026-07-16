@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using Google.Protobuf;
-using Sass.EmbeddedProtocol;
 using EmbeddedSass.Net.Diagnostics;
 using EmbeddedSass.Net.Internal.Protocol;
 using EmbeddedSass.Net.Internal.Transport;
+using Google.Protobuf;
+using Sass.EmbeddedProtocol;
 
 namespace EmbeddedSass.Net.Internal.Process;
 
@@ -185,7 +185,7 @@ internal sealed class CompilationDispatcher : IDisposable
         _version.TrySetException(exception);
         foreach ((uint compilationId, CompilationOperation _) in _compilations)
         {
-            if (_compilations.TryRemove(compilationId, out CompilationOperation? operation))
+            if (_compilations.TryRemove(compilationId, out var operation))
             {
                 operation.Fail(exception);
             }

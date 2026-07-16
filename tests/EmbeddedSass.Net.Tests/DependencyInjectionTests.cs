@@ -1,7 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace EmbeddedSass.Net.Tests;
 

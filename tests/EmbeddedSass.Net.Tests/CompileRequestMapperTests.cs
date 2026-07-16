@@ -1,6 +1,6 @@
 using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Internal.Protocol;
 using EmbeddedSass.Net.Importing;
+using EmbeddedSass.Net.Internal.Protocol;
 
 namespace EmbeddedSass.Net.Tests;
 

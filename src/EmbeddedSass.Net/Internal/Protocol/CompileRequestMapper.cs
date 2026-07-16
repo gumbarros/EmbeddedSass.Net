@@ -1,6 +1,6 @@
-using Sass.EmbeddedProtocol;
 using EmbeddedSass.Net.Compilation;
 using EmbeddedSass.Net.Diagnostics;
+using Sass.EmbeddedProtocol;
 
 namespace EmbeddedSass.Net.Internal.Protocol;
 
