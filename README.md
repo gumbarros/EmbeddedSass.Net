@@ -115,3 +115,7 @@ Explicit items can reference multiple source directories or individual entry fil
 Generated CSS and source-map files are registered as project content, included during publish, and removed by the standard MSBuild clean process.
 
 See the `EmbeddedSass.Net.Sample.AspNetCore` sample for a complete application.
+
+## AI Notice
+AI tools were used as part of the development process and are disclosed here for transparency.
+The final code was reviewed, refactored and tested by a human (specifically, me, @gumbarros ).
