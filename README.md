@@ -5,6 +5,15 @@ EmbeddedSass.Net is an asynchronous, thread-safe .NET host for the [Embedded Sas
 The library runs a trusted Embedded Dart Sass executable supplied by the
 application or by the optional compiler package.
 
+# Getting Started
+
+Add the package to the project:
+
+```xml
+<PackageReference Include="EmbeddedSass.Net"
+                  Version="1.0.1" />
+```
+
 ```csharp
 using EmbeddedSass.Net;
 using EmbeddedSass.Net.Compiler;
@@ -50,7 +59,7 @@ Add the package to the project:
 
 ```xml
 <PackageReference Include="EmbeddedSass.Net.MsBuild"
-                  Version="1.0.0"
+                  Version="1.0.1"
                   PrivateAssets="all" />
 ```
 
