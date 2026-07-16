@@ -96,7 +96,7 @@ internal sealed class CompilationDispatcher : IDisposable
         OutboundMessage message;
         try
         {
-            message = OutboundMessage.Parser.ParseFrom(packet.Payload.Span);
+            message = OutboundMessage.Parser.ParseFrom(packet.Payload);
         }
         catch (InvalidProtocolBufferException exception)
         {

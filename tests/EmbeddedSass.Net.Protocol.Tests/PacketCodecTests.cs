@@ -19,7 +19,7 @@ public sealed class PacketCodecTests
             1024,
             CancellationToken.None);
 
-        ReadResult result = await pipe.Reader.ReadAsync(CancellationToken.None);
+        var result = await pipe.Reader.ReadAsync(CancellationToken.None);
         Assert.Equal(
             new byte[] { 0x04, 0xac, 0x02, 0x08, 0x01 },
             result.Buffer.ToArray());
@@ -30,19 +30,19 @@ public sealed class PacketCodecTests
     public async Task ReadsFragmentedPacket()
     {
         var pipe = new Pipe();
-        Task<ProtocolPacket?> read = PacketCodec.ReadAsync(
+        var read = ReadPacketAsync(
             pipe.Reader,
             1024,
-            CancellationToken.None).AsTask();
+            CancellationToken.None);
 
-        foreach (byte value in new byte[] { 0x04, 0xac, 0x02, 0x08, 0x01 })
+        foreach (var value in new byte[] { 0x04, 0xac, 0x02, 0x08, 0x01 })
         {
             pipe.Writer.Write([value]);
             await pipe.Writer.FlushAsync(CancellationToken.None);
             await Task.Yield();
         }
 
-        ProtocolPacket packet = Assert.IsType<ProtocolPacket>(await read);
+        var packet = Assert.IsType<ProtocolPacket>(await read);
         Assert.Equal(300u, packet.CompilationId);
         Assert.Equal(new byte[] { 0x08, 0x01 }, packet.Payload.ToArray());
     }
@@ -57,10 +57,10 @@ public sealed class PacketCodecTests
         });
         await pipe.Writer.FlushAsync(CancellationToken.None);
 
-        ProtocolPacket first = Assert.IsType<ProtocolPacket>(
-            await PacketCodec.ReadAsync(pipe.Reader, 1024, CancellationToken.None));
-        ProtocolPacket second = Assert.IsType<ProtocolPacket>(
-            await PacketCodec.ReadAsync(pipe.Reader, 1024, CancellationToken.None));
+        var first = Assert.IsType<ProtocolPacket>(
+            await ReadPacketAsync(pipe.Reader, 1024, CancellationToken.None));
+        var second = Assert.IsType<ProtocolPacket>(
+            await ReadPacketAsync(pipe.Reader, 1024, CancellationToken.None));
 
         Assert.Equal(1u, first.CompilationId);
         Assert.Equal(new byte[] { 0xaa }, first.Payload.ToArray());
@@ -78,8 +78,8 @@ public sealed class PacketCodecTests
         pipe.Writer.Write(bytes);
         await pipe.Writer.CompleteAsync();
 
-        SassProtocolException exception = await Assert.ThrowsAsync<SassProtocolException>(
-            async () => await PacketCodec.ReadAsync(
+        var exception = await Assert.ThrowsAsync<SassProtocolException>(
+            async () => await ReadPacketAsync(
                 pipe.Reader,
                 1024,
                 CancellationToken.None));
@@ -94,8 +94,8 @@ public sealed class PacketCodecTests
         pipe.Writer.Write(new byte[] { 0x04, 0x01, 0xaa });
         await pipe.Writer.CompleteAsync();
 
-        SassProtocolException exception = await Assert.ThrowsAsync<SassProtocolException>(
-            async () => await PacketCodec.ReadAsync(
+        var exception = await Assert.ThrowsAsync<SassProtocolException>(
+            async () => await ReadPacketAsync(
                 pipe.Reader,
                 1024,
                 CancellationToken.None));
@@ -110,12 +110,28 @@ public sealed class PacketCodecTests
         pipe.Writer.Write(new byte[] { 0x7f });
         await pipe.Writer.FlushAsync(CancellationToken.None);
 
-        SassProtocolException exception = await Assert.ThrowsAsync<SassProtocolException>(
-            async () => await PacketCodec.ReadAsync(
+        var exception = await Assert.ThrowsAsync<SassProtocolException>(
+            async () => await ReadPacketAsync(
                 pipe.Reader,
                 64,
                 CancellationToken.None));
 
         Assert.Contains("maximum", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<ProtocolPacket?> ReadPacketAsync(
+        PipeReader reader,
+        int maximumPacketBytes,
+        CancellationToken cancellationToken)
+    {
+        ProtocolPacket? packet = null;
+        var packetRead = await PacketCodec.ReadAsync(
+            reader,
+            maximumPacketBytes,
+            value => packet = new ProtocolPacket(
+                value.CompilationId,
+                new ReadOnlySequence<byte>(value.Payload.ToArray())),
+            cancellationToken);
+        return packetRead ? packet : null;
     }
 }

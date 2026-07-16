@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using EmbeddedSass.Net.Diagnostics;
+using Google.Protobuf;
 
 namespace EmbeddedSass.Net.Internal.Transport;
 
@@ -8,12 +9,14 @@ internal static class PacketCodec
 {
     private const int MaximumVarintBytes = 5;
 
-    public static async ValueTask<ProtocolPacket?> ReadAsync(
+    public static async ValueTask<bool> ReadAsync(
         PipeReader reader,
         int maximumPacketBytes,
+        Action<ProtocolPacket> dispatch,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(dispatch);
 
         if (maximumPacketBytes <= 0)
         {
@@ -22,11 +25,11 @@ internal static class PacketCodec
 
         while (true)
         {
-            ReadResult result = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            ReadOnlySequence<byte> buffer = result.Buffer;
+            var result = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var buffer = result.Buffer;
             var sequenceReader = new SequenceReader<byte>(buffer);
 
-            VarintStatus lengthStatus = TryReadUInt32(ref sequenceReader, out uint packetLength);
+            var lengthStatus = TryReadUInt32(ref sequenceReader, out uint packetLength);
             if (lengthStatus == VarintStatus.Malformed)
             {
                 reader.AdvanceTo(buffer.End);
@@ -40,7 +43,7 @@ internal static class PacketCodec
                     reader.AdvanceTo(buffer.End);
                     if (buffer.IsEmpty)
                     {
-                        return null;
+                        return false;
                     }
 
                     throw new SassProtocolException("The compiler stream ended within a packet length varint.");
@@ -75,24 +78,45 @@ internal static class PacketCodec
                 continue;
             }
 
-            ReadOnlySequence<byte> packet = buffer.Slice(sequenceReader.Position, packetLength);
+            var packet = buffer.Slice(sequenceReader.Position, packetLength);
             var packetReader = new SequenceReader<byte>(packet);
-            VarintStatus compilationIdStatus = TryReadUInt32(ref packetReader, out uint compilationId);
+            var compilationIdStatus = TryReadUInt32(ref packetReader, out uint compilationId);
             if (compilationIdStatus != VarintStatus.Success)
             {
-                SequencePosition packetEnd = buffer.GetPosition(packetLength, sequenceReader.Position);
+                var packetEnd = buffer.GetPosition(packetLength, sequenceReader.Position);
                 reader.AdvanceTo(packetEnd);
                 throw new SassProtocolException("The packet compilation ID is a malformed or truncated varint.");
             }
 
-            ReadOnlyMemory<byte> payload = packet.Slice(packetReader.Position).ToArray();
-            SequencePosition consumed = buffer.GetPosition(packetLength, sequenceReader.Position);
-            reader.AdvanceTo(consumed);
-            return new ProtocolPacket(compilationId, payload);
+            var consumed = buffer.GetPosition(packetLength, sequenceReader.Position);
+            try
+            {
+                dispatch(new ProtocolPacket(compilationId, packet.Slice(packetReader.Position)));
+            }
+            finally
+            {
+                reader.AdvanceTo(consumed);
+            }
+
+            return true;
         }
     }
 
-    public static async ValueTask WriteAsync(
+    public static ValueTask WriteAsync(
+        PipeWriter writer,
+        uint compilationId,
+        IMessage message,
+        int maximumPacketBytes,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        ArgumentNullException.ThrowIfNull(message);
+        WritePacketPrefix(writer, compilationId, message.CalculateSize(), maximumPacketBytes);
+        message.WriteTo(writer);
+        return FlushAsync(writer, cancellationToken);
+    }
+
+    public static ValueTask WriteAsync(
         PipeWriter writer,
         uint compilationId,
         ReadOnlyMemory<byte> payload,
@@ -100,9 +124,19 @@ internal static class PacketCodec
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(writer);
+        WritePacketPrefix(writer, compilationId, payload.Length, maximumPacketBytes);
+        writer.Write(payload.Span);
+        return FlushAsync(writer, cancellationToken);
+    }
 
+    private static void WritePacketPrefix(
+        PipeWriter writer,
+        uint compilationId,
+        int payloadLength,
+        int maximumPacketBytes)
+    {
         int compilationIdLength = GetVarintLength(compilationId);
-        long packetLength = (long)compilationIdLength + payload.Length;
+        long packetLength = (long)compilationIdLength + payloadLength;
         if (packetLength > maximumPacketBytes)
         {
             throw new SassProtocolException(
@@ -114,8 +148,12 @@ internal static class PacketCodec
         prefixLength += WriteUInt32(prefix[prefixLength..], compilationId);
 
         writer.Write(prefix[..prefixLength]);
-        writer.Write(payload.Span);
+    }
 
+    private static async ValueTask FlushAsync(
+        PipeWriter writer,
+        CancellationToken cancellationToken)
+    {
         FlushResult result = await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
@@ -128,7 +166,7 @@ internal static class PacketCodec
         }
     }
 
-    internal static int WriteUInt32(Span<byte> destination, uint value)
+    public static int WriteUInt32(Span<byte> destination, uint value)
     {
         int index = 0;
         while (value >= 0x80)

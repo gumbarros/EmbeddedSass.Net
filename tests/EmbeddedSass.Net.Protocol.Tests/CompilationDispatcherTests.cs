@@ -1,3 +1,4 @@
+using System.Buffers;
 using EmbeddedSass.Net.Diagnostics;
 using EmbeddedSass.Net.Importing;
 using EmbeddedSass.Net.Internal.Process;
@@ -301,7 +302,7 @@ public sealed class CompilationDispatcherTests
         new(1, maximumPendingLogs: 2, CancellationToken.None, sendAsync);
 
     private static ProtocolPacket Packet(uint compilationId, OutboundMessage message) =>
-        new(compilationId, message.ToByteArray());
+        new(compilationId, new ReadOnlySequence<byte>(message.ToByteArray()));
 
     private static OutboundMessage Success(string css) =>
         new()

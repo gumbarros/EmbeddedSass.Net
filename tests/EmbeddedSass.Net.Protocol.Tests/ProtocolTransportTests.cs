@@ -1,6 +1,9 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using EmbeddedSass.Net.Internal.Transport;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 
 namespace EmbeddedSass.Net.Protocol.Tests;
 
@@ -19,16 +22,22 @@ public sealed class ProtocolTransportTests
             maximumPacketBytes: 1024,
             lifetime.Token);
 
-        Task first = transport.SendAsync(1, new byte[] { 1, 2, 3 });
-        Task second = transport.SendAsync(2, new byte[] { 4, 5, 6 });
+        var first = transport.SendAsync(
+            1,
+            new BytesValue { Value = ByteString.CopyFrom(1, 2, 3) });
+        var second = transport.SendAsync(
+            2,
+            new BytesValue { Value = ByteString.CopyFrom(4, 5, 6) });
         var packets = new ConcurrentDictionary<uint, byte[]>();
-        for (int index = 0; index < 2; index++)
+        for (var index = 0; index < 2; index++)
         {
-            ProtocolPacket packet = Assert.NotNull(await PacketCodec.ReadAsync(
+            var packetRead = await PacketCodec.ReadAsync(
                 hostToCompiler.Reader,
                 1024,
-                CancellationToken.None));
-            packets[packet.CompilationId] = packet.Payload.ToArray();
+                packet => packets[packet.CompilationId] =
+                    BytesValue.Parser.ParseFrom(packet.Payload).Value.ToByteArray(),
+                CancellationToken.None);
+            Assert.True(packetRead);
         }
 
         await Task.WhenAll(first, second);
@@ -54,8 +63,9 @@ public sealed class ProtocolTransportTests
             maximumPendingWrites: 4,
             maximumPacketBytes: 1024,
             lifetime.Token);
-        var packets = new List<ProtocolPacket>();
-        Task reader = transport.ReadAllAsync(packets.Add);
+        var packets = new List<(uint CompilationId, byte[] Payload)>();
+        var reader = transport.ReadAllAsync(
+            packet => packets.Add((packet.CompilationId, packet.Payload.ToArray())));
 
         await PacketCodec.WriteAsync(
             compilerToHost.Writer,
@@ -66,9 +76,9 @@ public sealed class ProtocolTransportTests
         await compilerToHost.Writer.CompleteAsync();
         await reader;
 
-        ProtocolPacket packet = Assert.Single(packets);
+        var packet = Assert.Single(packets);
         Assert.Equal(7u, packet.CompilationId);
-        Assert.Equal(new byte[] { 8, 9 }, packet.Payload.ToArray());
+        Assert.Equal(new byte[] { 8, 9 }, packet.Payload);
 
         transport.CompleteWrites();
         await transport.WriterCompletion;
@@ -88,8 +98,12 @@ public sealed class ProtocolTransportTests
             maximumPacketBytes: 1024,
             lifetime.Token);
 
-        Task first = transport.SendAsync(1, new byte[] { 1 });
-        Task second = transport.SendAsync(2, new byte[] { 2 });
+        var first = transport.SendAsync(
+            1,
+            new BytesValue { Value = ByteString.CopyFrom(1) });
+        var second = transport.SendAsync(
+            2,
+            new BytesValue { Value = ByteString.CopyFrom(2) });
 
         await Assert.ThrowsAsync<IOException>(() => first);
         await Assert.ThrowsAnyAsync<Exception>(() => second);

@@ -1,5 +1,6 @@
 using System.IO.Pipelines;
 using System.Threading.Channels;
+using Google.Protobuf;
 
 namespace EmbeddedSass.Net.Internal.Transport;
 
@@ -33,9 +34,9 @@ internal sealed class ProtocolTransport
 
     public Task WriterCompletion { get; }
 
-    public async Task SendAsync(uint compilationId, ReadOnlyMemory<byte> payload)
+    public async Task SendAsync(uint compilationId, IMessage message)
     {
-        var pending = new PendingWrite(compilationId, payload);
+        var pending = new PendingWrite(compilationId, message);
         await _writes.Writer.WriteAsync(pending, _lifetimeCancellation).ConfigureAwait(false);
         await pending.Completion.Task.ConfigureAwait(false);
     }
@@ -44,16 +45,15 @@ internal sealed class ProtocolTransport
     {
         while (true)
         {
-            ProtocolPacket? packet = await PacketCodec.ReadAsync(
+            bool packetRead = await PacketCodec.ReadAsync(
                 _reader,
                 _maximumPacketBytes,
+                dispatch,
                 _lifetimeCancellation).ConfigureAwait(false);
-            if (packet is null)
+            if (!packetRead)
             {
                 return;
             }
-
-            dispatch(packet.Value);
         }
     }
 
@@ -77,7 +77,7 @@ internal sealed class ProtocolTransport
                     await PacketCodec.WriteAsync(
                         _writer,
                         write.CompilationId,
-                        write.Payload,
+                        write.Message,
                         _maximumPacketBytes,
                         _lifetimeCancellation).ConfigureAwait(false);
                     write.Completion.TrySetResult();
@@ -106,7 +106,7 @@ internal sealed class ProtocolTransport
         }
     }
 
-    private sealed record PendingWrite(uint CompilationId, ReadOnlyMemory<byte> Payload)
+    private sealed record PendingWrite(uint CompilationId, IMessage Message)
     {
         public TaskCompletionSource Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);

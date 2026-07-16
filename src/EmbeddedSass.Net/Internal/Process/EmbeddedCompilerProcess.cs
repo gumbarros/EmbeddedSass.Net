@@ -39,7 +39,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
             options.MaxConcurrentCompilations,
             options.MaxPendingLogEvents,
             _lifetime.Token,
-            (compilationId, message) => SendAsync(compilationId, message.ToByteArray()),
+            SendAsync,
             Fail);
         _standardError = new BoundedByteTail(options.MaxCapturedStderrBytes);
 
@@ -65,7 +65,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
         {
             await compiler.SendAsync(
                 0,
-                CompilationDispatcher.CreateVersionRequest().ToByteArray()).ConfigureAwait(false);
+                CompilationDispatcher.CreateVersionRequest()).ConfigureAwait(false);
 
             try
             {
@@ -103,7 +103,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
 
         try
         {
-            await SendAsync(operation.CompilationId, request.Message.ToByteArray())
+            await SendAsync(operation.CompilationId, request.Message)
                 .ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -168,10 +168,10 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
         _lifetime.Dispose();
     }
 
-    private async Task SendAsync(uint compilationId, ReadOnlyMemory<byte> payload)
+    private async Task SendAsync(uint compilationId, IMessage message)
     {
         ThrowIfUnavailable();
-        await _transport.SendAsync(compilationId, payload).ConfigureAwait(false);
+        await _transport.SendAsync(compilationId, message).ConfigureAwait(false);
     }
 
     private async Task ReadProtocolAsync()

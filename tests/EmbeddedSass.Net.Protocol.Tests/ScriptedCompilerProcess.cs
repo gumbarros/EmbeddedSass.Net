@@ -105,18 +105,20 @@ internal sealed class ScriptedCompilerEndpoint
     public async Task<(uint CompilationId, InboundMessage Message)> ReadAsync(
         CancellationToken cancellationToken)
     {
-        ProtocolPacket? packet = await PacketCodec.ReadAsync(
+        (uint CompilationId, InboundMessage Message)? packet = null;
+        var packetRead = await PacketCodec.ReadAsync(
             FromHost,
             1024 * 1024,
+            value => packet = (
+                value.CompilationId,
+                InboundMessage.Parser.ParseFrom(value.Payload)),
             cancellationToken);
-        if (packet is null)
+        if (!packetRead)
         {
             throw new EndOfStreamException("The host stream ended before the expected packet.");
         }
 
-        return (
-            packet.Value.CompilationId,
-            InboundMessage.Parser.ParseFrom(packet.Value.Payload.Span));
+        return packet!.Value;
     }
 
     public async Task SendAsync(
@@ -177,11 +179,12 @@ internal sealed class ScriptedCompilerEndpoint
 
     public async Task DrainUntilEofAsync(CancellationToken cancellationToken)
     {
-        ProtocolPacket? packet = await PacketCodec.ReadAsync(
+        var packetRead = await PacketCodec.ReadAsync(
             FromHost,
             1024 * 1024,
+            _ => { },
             cancellationToken);
-        Assert.Null(packet);
+        Assert.False(packetRead);
     }
 }
 
@@ -191,21 +194,17 @@ internal sealed class ScriptedCompilerProcess : ICompilerProcess
     private readonly Pipe _hostToCompiler = new();
     private readonly Pipe _compilerToHost = new();
     private readonly Pipe _standardError = new();
-    private readonly Stream _standardInput;
-    private readonly Stream _standardOutput;
-    private readonly Stream _standardErrorStream;
     private readonly Task _scriptTask;
     private readonly int _configuredExitCode;
-    private int? _exitCode;
 
     public ScriptedCompilerProcess(
         Func<ScriptedCompilerEndpoint, CancellationToken, Task> script,
         int exitCode)
     {
         _configuredExitCode = exitCode;
-        _standardInput = _hostToCompiler.Writer.AsStream();
-        _standardOutput = _compilerToHost.Reader.AsStream();
-        _standardErrorStream = _standardError.Reader.AsStream();
+        StandardInput = _hostToCompiler.Writer.AsStream();
+        StandardOutput = _compilerToHost.Reader.AsStream();
+        StandardError = _standardError.Reader.AsStream();
 
         var endpoint = new ScriptedCompilerEndpoint(
             _hostToCompiler.Reader,
@@ -214,13 +213,13 @@ internal sealed class ScriptedCompilerProcess : ICompilerProcess
         _scriptTask = Task.Run(() => RunScriptAsync(script, endpoint));
     }
 
-    public Stream StandardInput => _standardInput;
+    public Stream StandardInput { get; }
 
-    public Stream StandardOutput => _standardOutput;
+    public Stream StandardOutput { get; }
 
-    public Stream StandardError => _standardErrorStream;
+    public Stream StandardError { get; }
 
-    public int? ExitCode => _exitCode;
+    public int? ExitCode { get; private set; }
 
     public Task WaitForExitAsync(CancellationToken cancellationToken = default) =>
         _scriptTask.WaitAsync(cancellationToken);
@@ -229,7 +228,7 @@ internal sealed class ScriptedCompilerProcess : ICompilerProcess
 
     public async ValueTask DisposeAsync()
     {
-        _cancellation.Cancel();
+        await _cancellation.CancelAsync();
         try
         {
             await _scriptTask.ConfigureAwait(false);
@@ -238,9 +237,9 @@ internal sealed class ScriptedCompilerProcess : ICompilerProcess
         {
         }
 
-        await _standardInput.DisposeAsync().ConfigureAwait(false);
-        await _standardOutput.DisposeAsync().ConfigureAwait(false);
-        await _standardErrorStream.DisposeAsync().ConfigureAwait(false);
+        await StandardInput.DisposeAsync().ConfigureAwait(false);
+        await StandardOutput.DisposeAsync().ConfigureAwait(false);
+        await StandardError.DisposeAsync().ConfigureAwait(false);
         _cancellation.Dispose();
     }
 
@@ -251,11 +250,11 @@ internal sealed class ScriptedCompilerProcess : ICompilerProcess
         try
         {
             await script(endpoint, _cancellation.Token).ConfigureAwait(false);
-            _exitCode = _configuredExitCode;
+            ExitCode = _configuredExitCode;
         }
         catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
         {
-            _exitCode = -1;
+            ExitCode = -1;
         }
         finally
         {
