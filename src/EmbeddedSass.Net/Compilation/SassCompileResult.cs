@@ -1,11 +1,20 @@
 namespace EmbeddedSass.Net.Compilation;
 
-public sealed class SassCompileResult(
-    string css,
-    string? sourceMap,
-    IReadOnlyList<Uri> loadedUrls)
+public sealed class SassCompileResult
 {
-    public string Css { get; } = css;
-    public string? SourceMap { get;  } = sourceMap;
-    public IReadOnlyList<Uri> LoadedUrls { get; } = loadedUrls;
+    public string Css { get; }
+    public string? SourceMap { get;  }
+    public IReadOnlyList<Uri> LoadedUrls { get; }
+    
+    // ReSharper disable once ConvertToPrimaryConstructor
+    public SassCompileResult(
+        string css,
+        string? sourceMap,
+        IReadOnlyList<Uri> loadedUrls)
+    {
+        Css = css;
+        SourceMap = sourceMap;
+        LoadedUrls = loadedUrls;
+    }
+
 }
