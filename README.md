@@ -1,6 +1,6 @@
 # EmbeddedSass.Net
 
-EmbeddedSass.Net is an asynchronous, thread-safe .NET host for the [Embedded Sass Protocol](https://github.com/sass/sass/blob/df76115b586b048f161a7545ae5d0557b99e2a28/spec/embedded-protocol.md#the-embedded-sass-protocol).
+EmbeddedSass.Net is a .NET implementation for the [Embedded Sass Protocol](https://github.com/sass/sass/blob/df76115b586b048f161a7545ae5d0557b99e2a28/spec/embedded-protocol.md#the-embedded-sass-protocol).
 
 The library runs a Dart Sass executable supplied by the
 application or by the optional compiler package.
