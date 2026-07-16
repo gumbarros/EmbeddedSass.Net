@@ -39,7 +39,7 @@ var result = await compiler.CompileAsync(
 
 ## MSBuild integration
 
-`EmbeddedSass.Net.MsBuild` compiles Sass before ASP.NET Core resolves static web assets. The package includes the Sass compiler, so Node.js and a system-wide Sass installation are not required.
+`EmbeddedSass.Net.MsBuild` compiles Sass before ASP.NET Core resolves static web assets. The package includes the Sass compiler, so a Sass installation is not required.
 
 Add the package to the project:
 
@@ -114,8 +114,8 @@ Explicit items can reference multiple source directories or individual entry fil
 
 Generated CSS and source-map files are registered as project content, included during publish, and removed by the standard MSBuild clean process.
 
-See the `EmbeddedSass.Net.Sample.AspNetCore` sample for a complete application.
+See the [EmbeddedSass.Net.Sample.AspNetCore](https://github.com/gumbarros/EmbeddedSass.Net/tree/main/samples/EmbeddedSass.Net.Sample.AspNetCore) sample for a complete application.
 
 ## AI Notice
 AI tools were used as part of the development process and are disclosed here for transparency.
-The final code was reviewed, refactored and tested by a human (specifically, me, @gumbarros ).
+The final code was reviewed, refactored and tested by a human (specifically me, [@gumbarros](https://www.github.com/gumbarros) ).
