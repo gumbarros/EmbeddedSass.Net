@@ -49,7 +49,8 @@ internal sealed class CompilationDispatcher : IDisposable
     public async Task<CompilationOperation> RegisterAsync(
         SassLogHandler? logHandler,
         CancellationToken cancellationToken,
-        ImporterRegistry? importers = null)
+        ImporterRegistry? importers = null,
+        FunctionRegistry? functions = null)
     {
         await _compilationSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -68,10 +69,11 @@ internal sealed class CompilationDispatcher : IDisposable
             compilationId,
             logHandler,
             importers ?? new ImporterRegistry(),
+            functions ?? new FunctionRegistry(),
             _maximumPendingLogs,
             _sendAsync,
             _fatalCallbackFailure,
-            () => _compilationSlots.Release(), 
+            () => _compilationSlots.Release(),
             _connectionCancellation);
 
         if (_compilations.TryAdd(compilationId, operation))
@@ -162,8 +164,8 @@ internal sealed class CompilationDispatcher : IDisposable
                 break;
 
             case OutboundMessage.MessageOneofCase.FunctionCallRequest:
-                throw new SassProtocolException(
-                    $"The compiler sent unsupported callback {message.MessageCase} for compilation {packet.CompilationId}.");
+                operation.HandleFunctionCall(message.FunctionCallRequest);
+                break;
 
             default:
                 throw new SassProtocolException(

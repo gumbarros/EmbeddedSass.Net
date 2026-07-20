@@ -1,11 +1,13 @@
 using System.Buffers;
 using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Functions;
 using EmbeddedSass.Importing;
 using EmbeddedSass.Internal.Process;
 using EmbeddedSass.Internal.Protocol;
 using EmbeddedSass.Internal.Transport;
 using Google.Protobuf;
 using Sass.EmbeddedProtocol;
+using EmbeddedSass.Values;
 
 namespace EmbeddedSass.Protocol.Tests;
 
@@ -58,7 +60,7 @@ public sealed class CompilationDispatcherTests
     }
 
     [Fact]
-    public async Task UnsupportedFunctionCallbackIsRejected()
+    public async Task UnknownFunctionCallbackIsRejected()
     {
         using var dispatcher = CreateDispatcher();
         var operation = await dispatcher.RegisterAsync(null, CancellationToken.None);
@@ -68,12 +70,164 @@ public sealed class CompilationDispatcherTests
                 operation.CompilationId,
                 new OutboundMessage
                 {
-                    FunctionCallRequest = new OutboundMessage.Types.FunctionCallRequest()
+                    FunctionCallRequest = new OutboundMessage.Types.FunctionCallRequest
+                    {
+                        Name = "missing"
+                    }
                 })));
 
-        Assert.Contains("unsupported callback", exception.Message);
+        Assert.Contains("unknown custom function", exception.Message);
         dispatcher.FailAll(exception);
         await Assert.ThrowsAsync<SassProtocolException>(() => operation.Completion.Task);
+    }
+
+    [Fact]
+    public async Task FunctionCallbackMapsArgumentsAndSendsResult()
+    {
+        var sent = new TaskCompletionSource<InboundMessage>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcher = CreateDispatcher((_, message) =>
+        {
+            sent.TrySetResult(message);
+            return Task.CompletedTask;
+        });
+        IReadOnlyList<SassValue>? received = null;
+        var functions = new FunctionRegistry();
+        functions.Register(new SassFunction("double-value($value)", (arguments, _) =>
+        {
+            received = arguments;
+            var number = Assert.IsType<SassNumberValue>(arguments[0]);
+            return ValueTask.FromResult<SassValue>(new SassNumberValue(number.Value * 2)
+            {
+                NumeratorUnits = number.NumeratorUnits,
+                DenominatorUnits = number.DenominatorUnits
+            });
+        }));
+        var operation = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None,
+            functions: functions);
+
+        dispatcher.Dispatch(Packet(
+            operation.CompilationId,
+            new OutboundMessage
+            {
+                FunctionCallRequest = new OutboundMessage.Types.FunctionCallRequest
+                {
+                    Id = 7,
+                    Name = "double-value",
+                    Arguments =
+                    {
+                        new Value
+                        {
+                            Number = new Value.Types.Number
+                            {
+                                Value = 6,
+                                Numerators = { "px" }
+                            }
+                        }
+                    }
+                }
+            }));
+
+        var response = await sent.Task;
+        Assert.Single(received!);
+        Assert.Equal(7u, response.FunctionCallResponse.Id);
+        Assert.Equal(12, response.FunctionCallResponse.Success.Number.Value);
+        Assert.Equal(["px"], response.FunctionCallResponse.Success.Number.Numerators);
+        dispatcher.FailAll(new OperationCanceledException());
+    }
+
+    [Fact]
+    public async Task FunctionCallbackReportsAccessedArgumentListKeywords()
+    {
+        var sent = new TaskCompletionSource<InboundMessage>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcher = CreateDispatcher((_, message) =>
+        {
+            sent.TrySetResult(message);
+            return Task.CompletedTask;
+        });
+        var functions = new FunctionRegistry();
+        functions.Register(new SassFunction("inspect($args...)", (arguments, cancellationToken) =>
+        {
+            var argumentList = Assert.IsType<SassArgumentListValue>(arguments[0]);
+            _ = argumentList.Keywords;
+            return ValueTask.FromResult<SassValue>(SassNullValue.Instance);
+        }));
+        var operation = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None,
+            functions: functions);
+
+        dispatcher.Dispatch(Packet(
+            operation.CompilationId,
+            new OutboundMessage
+            {
+                FunctionCallRequest = new OutboundMessage.Types.FunctionCallRequest
+                {
+                    Id = 8,
+                    Name = "inspect",
+                    Arguments =
+                    {
+                        new Value
+                        {
+                            ArgumentList = new Value.Types.ArgumentList
+                            {
+                                Id = 42,
+                                Separator = ListSeparator.Comma,
+                                Keywords =
+                                {
+                                    ["color"] = new Value
+                                    {
+                                        String = new Value.Types.String { Text = "red" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }));
+
+        var response = await sent.Task;
+        Assert.Equal([42u], response.FunctionCallResponse.AccessedArgumentLists);
+        dispatcher.FailAll(new OperationCanceledException());
+    }
+
+    [Fact]
+    public async Task FunctionExceptionBecomesErrorResponse()
+    {
+        var sent = new TaskCompletionSource<InboundMessage>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcher = CreateDispatcher((_, message) =>
+        {
+            sent.TrySetResult(message);
+            return Task.CompletedTask;
+        });
+        var functions = new FunctionRegistry();
+        functions.Register(new SassFunction(
+            "fail()",
+            static (_, _) => ValueTask.FromException<SassValue>(
+                new InvalidOperationException("function failed"))));
+        var operation = await dispatcher.RegisterAsync(
+            null,
+            CancellationToken.None,
+            functions: functions);
+
+        dispatcher.Dispatch(Packet(
+            operation.CompilationId,
+            new OutboundMessage
+            {
+                FunctionCallRequest = new OutboundMessage.Types.FunctionCallRequest
+                {
+                    Id = 9,
+                    Name = "fail"
+                }
+            }));
+
+        var response = await sent.Task;
+        Assert.Equal("function failed", response.FunctionCallResponse.Error);
+        dispatcher.FailAll(new OperationCanceledException());
     }
 
     [Fact]

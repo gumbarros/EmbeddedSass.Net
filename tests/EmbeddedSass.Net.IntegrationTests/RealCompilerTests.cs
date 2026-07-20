@@ -1,7 +1,9 @@
 using System.Runtime.InteropServices;
 using EmbeddedSass.Compiler;
 using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Functions;
 using EmbeddedSass.Importing;
+using EmbeddedSass.Values;
 
 namespace EmbeddedSass.IntegrationTests;
 
@@ -151,6 +153,30 @@ public sealed class RealCompilerTests
             });
 
         Assert.Equal(".item{color:red}", result.Css.Trim());
+    }
+
+    [Fact]
+    public async Task CompilesWithCustomFunction()
+    {
+        await using var compiler = CreateCompiler();
+        var result = await compiler.CompileAsync(
+            new SassCompileRequest(new SassStringInput("a { width: double-value(6px); }"))
+            {
+                Functions =
+                [
+                    new SassFunction("double-value($value)", static (arguments, _) =>
+                    {
+                        var number = (SassNumberValue)arguments[0];
+                        return ValueTask.FromResult<SassValue>(new SassNumberValue(number.Value * 2)
+                        {
+                            NumeratorUnits = number.NumeratorUnits,
+                            DenominatorUnits = number.DenominatorUnits
+                        });
+                    })
+                ]
+            });
+
+        Assert.Contains("width: 12px", result.Css, StringComparison.Ordinal);
     }
 
     [Fact]

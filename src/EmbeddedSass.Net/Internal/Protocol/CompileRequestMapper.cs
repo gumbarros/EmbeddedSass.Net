@@ -1,4 +1,5 @@
 using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Functions;
 using Sass.EmbeddedProtocol;
 
 namespace EmbeddedSass.Internal.Protocol;
@@ -11,6 +12,7 @@ internal static class CompileRequestMapper
         ArgumentNullException.ThrowIfNull(request.Input);
 
         var importerRegistry = new ImporterRegistry();
+        var functionRegistry = new FunctionRegistry();
         var compileRequest = new InboundMessage.Types.CompileRequest
         {
             Style = request.OutputStyle switch
@@ -74,6 +76,7 @@ internal static class CompileRequestMapper
         }
 
         AddImporters(compileRequest, request.Importers, importerRegistry);
+        AddFunctions(compileRequest, request.Functions, functionRegistry);
         AddLoadPaths(compileRequest, request.LoadPaths);
         AddStrings(compileRequest.FatalDeprecation, request.FatalDeprecations, nameof(request.FatalDeprecations));
         AddStrings(compileRequest.SilenceDeprecation, request.SilencedDeprecations, nameof(request.SilencedDeprecations));
@@ -82,7 +85,22 @@ internal static class CompileRequestMapper
         return new MappedCompileRequest(
             new InboundMessage { CompileRequest = compileRequest },
             request.LogHandler,
-            importerRegistry);
+            importerRegistry,
+            functionRegistry);
+    }
+
+    private static void AddFunctions(
+        InboundMessage.Types.CompileRequest target,
+        IReadOnlyList<ISassFunction> functions,
+        FunctionRegistry registry)
+    {
+        ArgumentNullException.ThrowIfNull(functions);
+        foreach (var function in functions)
+        {
+            ArgumentNullException.ThrowIfNull(function);
+            registry.Register(function);
+            target.GlobalFunctions.Add(function.Signature);
+        }
     }
 
     private static void AddImporters(
@@ -176,4 +194,5 @@ internal static class CompileRequestMapper
 internal sealed record MappedCompileRequest(
     InboundMessage Message,
     SassLogHandler? LogHandler,
-    ImporterRegistry Importers);
+    ImporterRegistry Importers,
+    FunctionRegistry Functions);
