@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Compiler;
 using EmbeddedSass.Diagnostics;
 using EmbeddedSass.Importing;

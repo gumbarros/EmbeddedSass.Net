@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Order;
 using DartSassHost;
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Compiler;
 using JavaScriptEngineSwitcher.Jint;
 using Microsoft.Extensions.DependencyInjection;

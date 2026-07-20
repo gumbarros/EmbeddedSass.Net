@@ -1,4 +1,3 @@
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Diagnostics;
 
 namespace EmbeddedSass.Tests;

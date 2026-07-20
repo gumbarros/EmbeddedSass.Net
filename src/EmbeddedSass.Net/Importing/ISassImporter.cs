@@ -1,5 +1,3 @@
-using EmbeddedSass.Compilation;
-
 namespace EmbeddedSass.Importing;
 
 /// <summary>Marks a host-defined importer that may be registered for a compilation.</summary>

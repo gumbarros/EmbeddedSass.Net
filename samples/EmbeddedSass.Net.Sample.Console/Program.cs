@@ -1,5 +1,4 @@
 using EmbeddedSass;
-using EmbeddedSass.Compilation;
 
 if (args.Length == 0)
 {

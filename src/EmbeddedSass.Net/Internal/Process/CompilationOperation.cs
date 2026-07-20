@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Diagnostics;
 using EmbeddedSass.Importing;
 using EmbeddedSass.Internal.Protocol;

@@ -8,7 +8,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/EmbeddedSass.Net.Tests/EmbeddedSass.Net.Tests.csproj" />
     <Project Path="tests/EmbeddedSass.Net.Protocol.Tests/EmbeddedSass.Net.Protocol.Tests.csproj" />
-    <Project Path="tests/EmbeddedSass.Net.IntegrationTests/EmbeddedSass.Net.IntegrationTests.csproj" />
+    <Project Path="tests\EmbeddedSass.Net.IntegrationTests\EmbeddedSass.Net.IntegrationTests.csproj" />
     <Project Path="tests\EmbeddedSass.Net.MsBuild.Tests\EmbeddedSass.Net.MsBuild.Tests.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">

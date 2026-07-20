@@ -1,4 +1,3 @@
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Internal.Process;
 using EmbeddedSass.Internal.Protocol;
 

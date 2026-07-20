@@ -1,4 +1,3 @@
-using EmbeddedSass.Compilation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 

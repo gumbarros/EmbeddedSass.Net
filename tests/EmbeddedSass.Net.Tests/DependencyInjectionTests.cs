@@ -1,4 +1,3 @@
-using EmbeddedSass.Compilation;
 using EmbeddedSass.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;

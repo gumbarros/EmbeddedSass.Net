@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Compilation;
+namespace EmbeddedSass;
 
 /// <summary>Compiles Sass stylesheets asynchronously.</summary>
 public interface ISassCompiler

@@ -1,4 +1,4 @@
-using EmbeddedSass.Compilation;
+using EmbeddedSass;
 using EmbeddedSass.Compiler;
 using EmbeddedSass.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;

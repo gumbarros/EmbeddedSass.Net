@@ -1,7 +1,7 @@
 using EmbeddedSass.Diagnostics;
 using EmbeddedSass.Importing;
 
-namespace EmbeddedSass.Compilation;
+namespace EmbeddedSass;
 
 public sealed record SassCompileRequest(SassInput Input)
 {

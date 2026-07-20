@@ -1,5 +1,4 @@
 using System.Buffers;
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Diagnostics;
 using EmbeddedSass.Internal.Process;
 using EmbeddedSass.Internal.Protocol;

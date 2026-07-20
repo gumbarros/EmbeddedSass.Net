@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Compilation;
+namespace EmbeddedSass;
 
 public static class SassCompilerExtensions
 {

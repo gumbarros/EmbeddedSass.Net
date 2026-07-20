@@ -41,7 +41,6 @@ macOS, and Linux, removing the need to manage an external executable:
 
 ```csharp
 using EmbeddedSass;
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Compiler;
 
 var options = new SassCompilerOptions().UseBundledDartSass();
@@ -64,7 +63,6 @@ Register Embedded Sass with an `IServiceCollection` and resolve
 `ISassCompiler` where it is needed:
 
 ```csharp
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Compiler;
 using EmbeddedSass.DependencyInjection;
 

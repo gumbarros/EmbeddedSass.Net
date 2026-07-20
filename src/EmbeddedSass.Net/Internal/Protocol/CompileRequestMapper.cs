@@ -1,4 +1,3 @@
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Diagnostics;
 using Sass.EmbeddedProtocol;
 

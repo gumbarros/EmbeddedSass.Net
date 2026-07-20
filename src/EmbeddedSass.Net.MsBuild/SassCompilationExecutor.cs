@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using EmbeddedSass;
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Diagnostics;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;

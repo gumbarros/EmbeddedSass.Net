@@ -1,4 +1,3 @@
-using EmbeddedSass.Compilation;
 using EmbeddedSass.Internal.Protocol;
 
 namespace EmbeddedSass.Internal.Process;
