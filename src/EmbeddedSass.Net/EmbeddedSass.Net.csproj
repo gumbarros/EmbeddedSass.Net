@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>EmbeddedSass.Net</AssemblyName>
-    <RootNamespace>EmbeddedSass.Net</RootNamespace>
+    <RootNamespace>EmbeddedSass</RootNamespace>
     <Description>Asynchronous .NET host for the Embedded Sass Protocol.</Description>
     <IsPackable>true</IsPackable>
   </PropertyGroup>

@@ -20,7 +20,7 @@ Add the package to the project:
 ```
 
 ```csharp
-using EmbeddedSass.Net;
+using EmbeddedSass;
 
 await using var compiler = new SassCompiler(new SassCompilerOptions
 {
@@ -40,9 +40,9 @@ macOS, and Linux, removing the need to manage an external executable:
 ```
 
 ```csharp
-using EmbeddedSass.Net;
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Compiler;
+using EmbeddedSass;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Compiler;
 
 var options = new SassCompilerOptions().UseBundledDartSass();
 await using var compiler = new SassCompiler(options);
@@ -64,9 +64,9 @@ Register Embedded Sass with an `IServiceCollection` and resolve
 `ISassCompiler` where it is needed:
 
 ```csharp
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Compiler;
-using EmbeddedSass.Net.DependencyInjection;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Compiler;
+using EmbeddedSass.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEmbeddedSass(options => options.UseBundledDartSass());

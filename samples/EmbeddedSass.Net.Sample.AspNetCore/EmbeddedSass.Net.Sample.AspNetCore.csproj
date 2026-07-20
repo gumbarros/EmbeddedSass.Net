@@ -5,6 +5,7 @@
     <EmbeddedSassCompileDependsOn>ResolveProjectReferences</EmbeddedSassCompileDependsOn>
     <EmbeddedSassQuietDependencies>true</EmbeddedSassQuietDependencies>
     <EmbeddedSassSilencedDeprecations>import</EmbeddedSassSilencedDeprecations>
+    <RootNamespace>EmbeddedSass.Sample</RootNamespace>
   </PropertyGroup>
 
   <Import Project="../../src/EmbeddedSass.Net.MsBuild/build/EmbeddedSass.Net.MsBuild.props" />

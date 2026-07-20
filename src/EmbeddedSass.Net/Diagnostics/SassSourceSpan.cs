@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Net.Diagnostics;
+namespace EmbeddedSass.Diagnostics;
 
 public sealed record SassSourceLocation(uint Offset, uint Line, uint Column);
 

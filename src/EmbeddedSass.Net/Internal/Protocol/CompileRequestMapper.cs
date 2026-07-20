@@ -1,8 +1,8 @@
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Diagnostics;
 using Sass.EmbeddedProtocol;
 
-namespace EmbeddedSass.Net.Internal.Protocol;
+namespace EmbeddedSass.Internal.Protocol;
 
 internal static class CompileRequestMapper
 {

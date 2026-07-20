@@ -1,13 +1,13 @@
 using System.Buffers;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Importing;
-using EmbeddedSass.Net.Internal.Process;
-using EmbeddedSass.Net.Internal.Protocol;
-using EmbeddedSass.Net.Internal.Transport;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Importing;
+using EmbeddedSass.Internal.Process;
+using EmbeddedSass.Internal.Protocol;
+using EmbeddedSass.Internal.Transport;
 using Google.Protobuf;
 using Sass.EmbeddedProtocol;
 
-namespace EmbeddedSass.Net.Protocol.Tests;
+namespace EmbeddedSass.Protocol.Tests;
 
 public sealed class CompilationDispatcherTests
 {

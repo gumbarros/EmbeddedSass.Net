@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using EmbeddedSass.Net.Compilation;
+using EmbeddedSass.Compilation;
 
-namespace EmbeddedSass.Net.MsBuild;
+namespace EmbeddedSass.MsBuild;
 
 internal sealed class CompilationCache
 {

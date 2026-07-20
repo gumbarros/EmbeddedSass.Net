@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Importing;
+using EmbeddedSass.Importing;
 
-namespace EmbeddedSass.Net.Internal.Protocol;
+namespace EmbeddedSass.Internal.Protocol;
 
 internal sealed class ImporterRegistry
 {

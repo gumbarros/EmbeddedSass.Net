@@ -7,6 +7,7 @@
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoPackageAnalysis>true</NoPackageAnalysis>
     <PackageId>EmbeddedSass.Net.MsBuild</PackageId>
+    <RootNamespace>EmbeddedSass.MsBuild</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

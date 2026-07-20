@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Net;
+namespace EmbeddedSass;
 
 /// <summary>Configures the compiler process and connection resource limits.</summary>
 public sealed class SassCompilerOptions

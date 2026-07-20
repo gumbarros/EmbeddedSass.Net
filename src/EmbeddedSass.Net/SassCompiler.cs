@@ -1,8 +1,8 @@
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Internal.Process;
-using EmbeddedSass.Net.Internal.Protocol;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Internal.Process;
+using EmbeddedSass.Internal.Protocol;
 
-namespace EmbeddedSass.Net;
+namespace EmbeddedSass;
 
 public sealed class SassCompiler(SassCompilerOptions options) : ISassCompiler, IAsyncDisposable
 {

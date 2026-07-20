@@ -1,9 +1,9 @@
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.DependencyInjection;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace EmbeddedSass.Net.Tests;
+namespace EmbeddedSass.Tests;
 
 public sealed class DependencyInjectionTests
 {

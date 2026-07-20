@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
-using EmbeddedSass.Net.Internal.Process;
-using EmbeddedSass.Net.Internal.Protocol;
-using EmbeddedSass.Net.Internal.Transport;
+using EmbeddedSass.Internal.Process;
+using EmbeddedSass.Internal.Protocol;
+using EmbeddedSass.Internal.Transport;
 using Google.Protobuf;
 using Sass.EmbeddedProtocol;
 
-namespace EmbeddedSass.Net.Protocol.Tests;
+namespace EmbeddedSass.Protocol.Tests;
 
 internal sealed class ScriptedProcessLauncher : IProcessLauncher
 {

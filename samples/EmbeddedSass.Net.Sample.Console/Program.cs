@@ -1,5 +1,5 @@
-using EmbeddedSass.Net;
-using EmbeddedSass.Net.Compilation;
+using EmbeddedSass;
+using EmbeddedSass.Compilation;
 
 if (args.Length == 0)
 {

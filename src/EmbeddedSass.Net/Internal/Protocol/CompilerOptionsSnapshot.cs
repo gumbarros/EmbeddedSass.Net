@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Net.Internal.Protocol;
+namespace EmbeddedSass.Internal.Protocol;
 
 internal sealed class CompilerOptionsSnapshot
 {

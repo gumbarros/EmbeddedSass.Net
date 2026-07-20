@@ -1,11 +1,11 @@
 using System.Threading.Channels;
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Importing;
-using EmbeddedSass.Net.Internal.Protocol;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Importing;
+using EmbeddedSass.Internal.Protocol;
 using Sass.EmbeddedProtocol;
 
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal sealed class CompilationOperation
 {

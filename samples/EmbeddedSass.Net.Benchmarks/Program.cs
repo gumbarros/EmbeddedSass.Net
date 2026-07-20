@@ -1,4 +1,4 @@
 ﻿using BenchmarkDotNet.Running;
-using EmbeddedSass.Net.Benchmarks;
+using EmbeddedSass.Benchmarks;
 
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);

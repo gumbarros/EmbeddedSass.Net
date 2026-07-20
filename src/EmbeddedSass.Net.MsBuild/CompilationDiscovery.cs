@@ -1,7 +1,7 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-namespace EmbeddedSass.Net.MsBuild;
+namespace EmbeddedSass.MsBuild;
 
 internal static class CompilationDiscovery
 {

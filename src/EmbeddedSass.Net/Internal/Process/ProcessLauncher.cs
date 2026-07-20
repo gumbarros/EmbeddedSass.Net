@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Internal.Protocol;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Internal.Protocol;
 
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal sealed class ProcessLauncher : IProcessLauncher
 {

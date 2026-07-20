@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Compilation;
+using EmbeddedSass.Compilation;
 
-namespace EmbeddedSass.Net.MsBuild;
+namespace EmbeddedSass.MsBuild;
 
 internal static class CompilationOutputWriter
 {

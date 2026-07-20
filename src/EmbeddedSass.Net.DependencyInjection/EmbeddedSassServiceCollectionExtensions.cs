@@ -1,9 +1,9 @@
-using EmbeddedSass.Net.Compilation;
+using EmbeddedSass.Compilation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
-namespace EmbeddedSass.Net.DependencyInjection;
+namespace EmbeddedSass.DependencyInjection;
 
 public static class EmbeddedSassServiceCollectionExtensions
 {

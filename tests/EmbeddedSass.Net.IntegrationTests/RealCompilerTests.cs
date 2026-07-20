@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Compiler;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Importing;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Compiler;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Importing;
 
-namespace EmbeddedSass.Net.IntegrationTests;
+namespace EmbeddedSass.IntegrationTests;
 
 public sealed class RealCompilerTests
 {

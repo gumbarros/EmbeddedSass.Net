@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Internal.Protocol;
+using EmbeddedSass.Internal.Protocol;
 
-namespace EmbeddedSass.Net.Protocol.Tests;
+namespace EmbeddedSass.Protocol.Tests;
 
 public sealed class ProtocolIdAllocatorTests
 {

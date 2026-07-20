@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace EmbeddedSass.Net.Tests;
+namespace EmbeddedSass.Tests;
 
 public sealed class PublicApiBoundaryTests
 {

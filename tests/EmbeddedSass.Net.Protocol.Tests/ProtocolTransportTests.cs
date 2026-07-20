@@ -1,11 +1,11 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
-using EmbeddedSass.Net.Internal.Transport;
+using EmbeddedSass.Internal.Transport;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
-namespace EmbeddedSass.Net.Protocol.Tests;
+namespace EmbeddedSass.Protocol.Tests;
 
 public sealed class ProtocolTransportTests
 {

@@ -1,7 +1,7 @@
-using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Diagnostics;
 using Sass.EmbeddedProtocol;
 
-namespace EmbeddedSass.Net.Internal.Protocol;
+namespace EmbeddedSass.Internal.Protocol;
 
 internal static class SourceSpanMapper
 {

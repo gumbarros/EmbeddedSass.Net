@@ -1,11 +1,11 @@
 using System.Buffers;
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Internal.Process;
-using EmbeddedSass.Net.Internal.Protocol;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Internal.Process;
+using EmbeddedSass.Internal.Protocol;
 using Sass.EmbeddedProtocol;
 
-namespace EmbeddedSass.Net.Protocol.Tests;
+namespace EmbeddedSass.Protocol.Tests;
 
 public sealed class EmbeddedCompilerProcessTests
 {
@@ -227,7 +227,7 @@ public sealed class EmbeddedCompilerProcessTests
         {
             await endpoint.CompleteHandshakeAsync(cancellationToken);
             (uint compilationId, _) = await endpoint.ReadAsync(cancellationToken);
-            await EmbeddedSass.Net.Internal.Transport.PacketCodec.WriteAsync(
+            await EmbeddedSass.Internal.Transport.PacketCodec.WriteAsync(
                 endpoint.ToHost,
                 compilationId,
                 new byte[] { 0xff },

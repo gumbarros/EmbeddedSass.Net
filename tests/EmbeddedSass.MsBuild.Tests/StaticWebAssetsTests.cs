@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Security;
-using EmbeddedSass.Net.MsBuild;
+using EmbeddedSass.MsBuild;
 
 namespace EmbeddedSass.MsBuild.Tests;
 

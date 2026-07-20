@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Compiler;
-using EmbeddedSass.Net.DependencyInjection;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Compiler;
+using EmbeddedSass.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
 var services = new ServiceCollection();

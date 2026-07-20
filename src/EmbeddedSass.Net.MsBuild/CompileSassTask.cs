@@ -1,8 +1,8 @@
-using EmbeddedSass.Net.Compilation;
+using EmbeddedSass.Compilation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-namespace EmbeddedSass.Net.MsBuild;
+namespace EmbeddedSass.MsBuild;
 
 public sealed class CompileSassTask : Microsoft.Build.Utilities.Task, ICancelableTask
 {

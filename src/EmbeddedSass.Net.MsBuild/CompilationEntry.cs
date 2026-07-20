@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Net.MsBuild;
+namespace EmbeddedSass.MsBuild;
 
 internal sealed record CompilationEntry(
     string Source,

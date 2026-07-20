@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Net;
+namespace EmbeddedSass;
 
 public sealed record SassCompilerInfo(
     string CompilerVersion,

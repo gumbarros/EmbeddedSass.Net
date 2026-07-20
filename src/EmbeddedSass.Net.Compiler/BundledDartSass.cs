@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace EmbeddedSass.Net.Compiler;
+namespace EmbeddedSass.Compiler;
 
 /// <summary>Configures EmbeddedSass.Net to use the Dart Sass binary in this package.</summary>
 public static class BundledDartSass

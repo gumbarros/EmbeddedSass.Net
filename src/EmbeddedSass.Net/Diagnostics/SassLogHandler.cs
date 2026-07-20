@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Net.Diagnostics;
+namespace EmbeddedSass.Diagnostics;
 
 public delegate ValueTask SassLogHandler(
     SassLogEvent logEvent,

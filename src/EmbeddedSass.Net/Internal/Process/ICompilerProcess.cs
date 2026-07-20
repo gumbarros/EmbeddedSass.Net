@@ -1,4 +1,4 @@
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal interface ICompilerProcess : IAsyncDisposable
 {

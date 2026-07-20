@@ -1,7 +1,7 @@
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Importing;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Importing;
 
-namespace EmbeddedSass.Net.Compilation;
+namespace EmbeddedSass.Compilation;
 
 public sealed record SassCompileRequest(SassInput Input)
 {

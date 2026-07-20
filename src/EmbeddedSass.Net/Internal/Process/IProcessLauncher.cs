@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Internal.Protocol;
+using EmbeddedSass.Internal.Protocol;
 
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal interface IProcessLauncher
 {

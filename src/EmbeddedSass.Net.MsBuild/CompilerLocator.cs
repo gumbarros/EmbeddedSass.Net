@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace EmbeddedSass.Net.MsBuild;
+namespace EmbeddedSass.MsBuild;
 
 internal static class CompilerLocator
 {

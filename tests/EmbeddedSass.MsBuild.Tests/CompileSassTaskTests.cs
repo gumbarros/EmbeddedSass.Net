@@ -1,5 +1,5 @@
 using System.Collections;
-using EmbeddedSass.Net.MsBuild;
+using EmbeddedSass.MsBuild;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 

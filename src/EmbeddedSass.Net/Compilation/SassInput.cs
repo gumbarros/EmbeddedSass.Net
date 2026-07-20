@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Importing;
+using EmbeddedSass.Importing;
 
-namespace EmbeddedSass.Net.Compilation;
+namespace EmbeddedSass.Compilation;
 
 //todo: When C# 15 releases change this to type union
 

@@ -1,9 +1,9 @@
 using System.Buffers;
 using System.IO.Pipelines;
-using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Diagnostics;
 using Google.Protobuf;
 
-namespace EmbeddedSass.Net.Internal.Transport;
+namespace EmbeddedSass.Internal.Transport;
 
 internal static class PacketCodec
 {

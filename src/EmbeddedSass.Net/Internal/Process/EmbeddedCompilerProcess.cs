@@ -1,10 +1,10 @@
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Internal.Protocol;
-using EmbeddedSass.Net.Internal.Transport;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Internal.Protocol;
+using EmbeddedSass.Internal.Transport;
 using Google.Protobuf;
 
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
 {

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace EmbeddedSass.Net.Sample.AspNetCore.Controllers;
+namespace EmbeddedSass.Sample.Controllers;
 
 public sealed class HomeController : Controller
 {

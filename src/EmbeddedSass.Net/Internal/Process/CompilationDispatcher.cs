@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Internal.Protocol;
-using EmbeddedSass.Net.Internal.Transport;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Internal.Protocol;
+using EmbeddedSass.Internal.Transport;
 using Google.Protobuf;
 using Sass.EmbeddedProtocol;
 
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal sealed class CompilationDispatcher : IDisposable
 {

@@ -10,7 +10,7 @@
                         Exclude="$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**;$(MSBuildProjectDirectory)/wwwroot/**" />
   </ItemGroup>
 
-  <UsingTask TaskName="EmbeddedSass.Net.MsBuild.CompileSassTask"
+  <UsingTask TaskName="EmbeddedSass.MsBuild.CompileSassTask"
              AssemblyFile="$(EmbeddedSassTasksAssembly)" />
 
   <Target Name="EmbeddedSassCompile"

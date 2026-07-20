@@ -2,7 +2,7 @@ using System.IO.Pipelines;
 using System.Threading.Channels;
 using Google.Protobuf;
 
-namespace EmbeddedSass.Net.Internal.Transport;
+namespace EmbeddedSass.Internal.Transport;
 
 internal sealed class ProtocolTransport
 {

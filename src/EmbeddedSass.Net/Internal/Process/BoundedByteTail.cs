@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal sealed class BoundedByteTail
 {

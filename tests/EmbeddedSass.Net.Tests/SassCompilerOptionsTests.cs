@@ -1,7 +1,7 @@
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Diagnostics;
 
-namespace EmbeddedSass.Net.Tests;
+namespace EmbeddedSass.Tests;
 
 public sealed class SassCompilerOptionsTests
 {

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>EmbeddedSass.Net.Compiler</AssemblyName>
-    <RootNamespace>EmbeddedSass.Net.Compiler</RootNamespace>
+    <RootNamespace>EmbeddedSass.Compiler</RootNamespace>
     <Description>Bundled Dart Sass compilers for EmbeddedSass.Net on Windows, macOS, and Linux.</Description>
     <IsPackable>true</IsPackable>
   </PropertyGroup>

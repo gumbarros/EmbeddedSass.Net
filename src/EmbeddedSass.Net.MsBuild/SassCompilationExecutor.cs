@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
-using EmbeddedSass.Net;
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Diagnostics;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-namespace EmbeddedSass.Net.MsBuild;
+namespace EmbeddedSass.MsBuild;
 
 internal sealed class SassCompilationExecutor : IAsyncDisposable
 {

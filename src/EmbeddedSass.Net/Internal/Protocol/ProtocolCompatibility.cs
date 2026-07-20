@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Diagnostics;
+using EmbeddedSass.Diagnostics;
 
-namespace EmbeddedSass.Net.Internal.Protocol;
+namespace EmbeddedSass.Internal.Protocol;
 
 internal static class ProtocolCompatibility
 {

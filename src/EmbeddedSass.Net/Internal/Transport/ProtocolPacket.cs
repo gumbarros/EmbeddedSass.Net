@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace EmbeddedSass.Net.Internal.Transport;
+namespace EmbeddedSass.Internal.Transport;
 
 internal readonly record struct ProtocolPacket(
     uint CompilationId,

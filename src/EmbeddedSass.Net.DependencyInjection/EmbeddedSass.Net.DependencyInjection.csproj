@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>EmbeddedSass.Net.DependencyInjection</AssemblyName>
-    <RootNamespace>EmbeddedSass.Net.DependencyInjection</RootNamespace>
+    <RootNamespace>EmbeddedSass.DependencyInjection</RootNamespace>
     <Description>Dependency injection and options integration for EmbeddedSass.Net.</Description>
     <IsPackable>true</IsPackable>
   </PropertyGroup>

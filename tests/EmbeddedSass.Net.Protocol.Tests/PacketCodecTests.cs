@@ -1,9 +1,9 @@
 using System.Buffers;
 using System.IO.Pipelines;
-using EmbeddedSass.Net.Diagnostics;
-using EmbeddedSass.Net.Internal.Transport;
+using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Internal.Transport;
 
-namespace EmbeddedSass.Net.Protocol.Tests;
+namespace EmbeddedSass.Protocol.Tests;
 
 public sealed class PacketCodecTests
 {

@@ -1,6 +1,6 @@
-using EmbeddedSass.Net.Compilation;
+using EmbeddedSass.Compilation;
 
-namespace EmbeddedSass.Net.Importing;
+namespace EmbeddedSass.Importing;
 
 /// <summary>Marks a host-defined importer that may be registered for a compilation.</summary>
 public interface ISassImporter;

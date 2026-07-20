@@ -1,17 +1,17 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Order;
 using DartSassHost;
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Compiler;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Compiler;
 using JavaScriptEngineSwitcher.Jint;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using AspNetCoreCompiler = AspNetCore.SassCompiler.ISassCompiler;
 using DartSassCompiler = DartSassHost.SassCompiler;
-using EmbeddedSassCompiler = EmbeddedSass.Net.SassCompiler;
+using EmbeddedSassCompiler = EmbeddedSass.SassCompiler;
 
-namespace EmbeddedSass.Net.Benchmarks;
+namespace EmbeddedSass.Benchmarks;
 
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]

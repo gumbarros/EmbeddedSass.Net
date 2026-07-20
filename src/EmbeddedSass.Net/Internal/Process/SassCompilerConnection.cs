@@ -1,7 +1,7 @@
-using EmbeddedSass.Net.Compilation;
-using EmbeddedSass.Net.Internal.Protocol;
+using EmbeddedSass.Compilation;
+using EmbeddedSass.Internal.Protocol;
 
-namespace EmbeddedSass.Net.Internal.Process;
+namespace EmbeddedSass.Internal.Process;
 
 internal sealed class SassCompilerConnection(
     CompilerOptionsSnapshot options,
