@@ -46,7 +46,8 @@
       <Content Remove="@(_EmbeddedSassRemovedFiles)" />
       <None Remove="@(_EmbeddedSassRemovedFiles)" />
       <_ContentIncludedByDefault Remove="@(_EmbeddedSassRemovedFiles)" />
-      <_EmbeddedSassNewContent Include="@(_EmbeddedSassGeneratedFiles)" Exclude="@(Content)" />
+      <_EmbeddedSassGeneratedContent Include="$([System.IO.Path]::GetRelativePath('$(MSBuildProjectDirectory)', '%(_EmbeddedSassGeneratedFiles.Identity)'))" />
+      <_EmbeddedSassNewContent Include="@(_EmbeddedSassGeneratedContent)" Exclude="@(Content)" />
       <Content Include="@(_EmbeddedSassNewContent)" CopyToPublishDirectory="PreserveNewest" />
       <FileWrites Include="@(_EmbeddedSassGeneratedFiles)" />
     </ItemGroup>
