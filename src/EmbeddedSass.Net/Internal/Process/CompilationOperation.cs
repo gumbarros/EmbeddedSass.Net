@@ -19,8 +19,7 @@ internal sealed class CompilationOperation
     private readonly FunctionRegistry _functions;
     private readonly Func<uint, InboundMessage, Task> _sendAsync;
     private readonly Action<Exception> _fatalCallbackFailure;
-    private readonly HashSet<CallbackKey> _pendingCallbacks = [];
-    private readonly Lock _callbackGate = new();
+    private CallbackState? _callbackState;
     private int _completed;
 
     public CompilationOperation(uint compilationId,
@@ -161,7 +160,9 @@ internal sealed class CompilationOperation
             () => FunctionCallAsync(request.Id, function, arguments, mapper));
     }
 
-    public void Complete(OutboundMessage.Types.CompileResponse response)
+    public void Complete(
+        OutboundMessage.Types.CompileResponse response,
+        SassCompileResult? result)
     {
         if (Interlocked.Exchange(ref _completed, 1) != 0)
         {
@@ -169,17 +170,19 @@ internal sealed class CompilationOperation
         }
 
         _logs?.Writer.TryComplete();
-        _ = CompleteAfterLogsAsync(response);
+        _ = CompleteAfterLogsAsync(response, result);
     }
 
-    public static void Validate(OutboundMessage.Types.CompileResponse response)
+    public static SassCompileResult? Validate(OutboundMessage.Types.CompileResponse response)
     {
         switch (response.ResultCase)
         {
             case OutboundMessage.Types.CompileResponse.ResultOneofCase.Success:
                 var seenUrls = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var value in response.LoadedUrls)
+                var loadedUrls = new Uri[response.LoadedUrls.Count];
+                for (int index = 0; index < loadedUrls.Length; index++)
                 {
+                    var value = response.LoadedUrls[index];
                     if (!seenUrls.Add(value))
                     {
                         throw new SassProtocolException(
@@ -190,9 +193,15 @@ internal sealed class CompilationOperation
                     {
                         throw new SassProtocolException($"Loaded URL '{value}' is not absolute.");
                     }
+
+                    loadedUrls[index] = url;
                 }
 
-                break;
+                var sourceMap = response.Success.SourceMap;
+                return new SassCompileResult(
+                    response.Success.Css,
+                    sourceMap.Length == 0 ? null : sourceMap,
+                    loadedUrls);
 
             case OutboundMessage.Types.CompileResponse.ResultOneofCase.Failure:
                 if (response.Failure.Span is not null)
@@ -200,7 +209,7 @@ internal sealed class CompilationOperation
                     SourceSpanMapper.Map(response.Failure.Span);
                 }
 
-                break;
+                return null;
 
             default:
                 throw new SassProtocolException(
@@ -220,7 +229,9 @@ internal sealed class CompilationOperation
         _release();
     }
 
-    private async Task CompleteAfterLogsAsync(OutboundMessage.Types.CompileResponse response)
+    private async Task CompleteAfterLogsAsync(
+        OutboundMessage.Types.CompileResponse response,
+        SassCompileResult? result)
     {
         try
         {
@@ -229,7 +240,7 @@ internal sealed class CompilationOperation
             switch (response.ResultCase)
             {
                 case OutboundMessage.Types.CompileResponse.ResultOneofCase.Success:
-                    Completion.TrySetResult(MapSuccess(response));
+                    Completion.TrySetResult(result!);
                     break;
 
                 case OutboundMessage.Types.CompileResponse.ResultOneofCase.Failure:
@@ -255,28 +266,6 @@ internal sealed class CompilationOperation
         {
             _release();
         }
-    }
-
-    private static SassCompileResult MapSuccess(
-        OutboundMessage.Types.CompileResponse response)
-    {
-        var loadedUrls = new Uri[response.LoadedUrls.Count];
-        for (int index = 0; index < loadedUrls.Length; index++)
-        {
-            var value = response.LoadedUrls[index];
-            if (!Uri.TryCreate(value, UriKind.Absolute, out var url) || !url.IsAbsoluteUri)
-            {
-                throw new SassProtocolException($"Loaded URL '{value}' is not absolute.");
-            }
-
-            loadedUrls[index] = url;
-        }
-
-        var sourceMap = response.Success.SourceMap;
-        return new SassCompileResult(
-            response.Success.Css,
-            sourceMap.Length == 0 ? null : sourceMap,
-            loadedUrls);
     }
 
     private async Task CanonicalizeAsync(
@@ -414,19 +403,21 @@ internal sealed class CompilationOperation
         Func<Task> callback)
     {
         var key = new CallbackKey(callbackType, requestId);
-        lock (_callbackGate)
+        var state = LazyInitializer.EnsureInitialized(ref _callbackState);
+        lock (state.Gate)
         {
-            if (!_pendingCallbacks.Add(key))
+            if (!state.PendingCallbacks.Add(key))
             {
                 throw new SassProtocolException(
                     $"Duplicate pending {callbackType} callback ID {requestId}.");
             }
         }
 
-        _ = ObserveCallbackAsync(key, callback);
+        _ = ObserveCallbackAsync(state, key, callback);
     }
 
     private async Task ObserveCallbackAsync(
+        CallbackState state,
         CallbackKey key,
         Func<Task> callback)
     {
@@ -443,9 +434,9 @@ internal sealed class CompilationOperation
         }
         finally
         {
-            lock (_callbackGate)
+            lock (state.Gate)
             {
-                _pendingCallbacks.Remove(key);
+                state.PendingCallbacks.Remove(key);
             }
         }
     }
@@ -504,6 +495,12 @@ internal sealed class CompilationOperation
     private readonly record struct CallbackKey(
         OutboundMessage.MessageOneofCase Type,
         uint Id);
+
+    private sealed class CallbackState
+    {
+        public Lock Gate { get; } = new();
+        public HashSet<CallbackKey> PendingCallbacks { get; } = [];
+    }
 
     private async Task RunLogWorkerAsync()
     {

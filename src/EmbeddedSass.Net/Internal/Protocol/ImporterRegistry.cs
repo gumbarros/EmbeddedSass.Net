@@ -4,7 +4,7 @@ namespace EmbeddedSass.Internal.Protocol;
 
 internal sealed class ImporterRegistry
 {
-    private readonly Dictionary<uint, ISassImporter> _importers = [];
+    private Dictionary<uint, ISassImporter>? _importers;
     private uint _nextId = 1;
 
     public uint Register(ISassImporter importer)
@@ -18,10 +18,18 @@ internal sealed class ImporterRegistry
         }
 
         var id = _nextId++;
-        _importers.Add(id, importer);
+        (_importers ??= []).Add(id, importer);
         return id;
     }
 
-    public bool TryGet(uint id, out ISassImporter? importer) =>
-        _importers.TryGetValue(id, out importer);
+    public bool TryGet(uint id, out ISassImporter? importer)
+    {
+        if (_importers is not null)
+        {
+            return _importers.TryGetValue(id, out importer);
+        }
+
+        importer = null;
+        return false;
+    }
 }

@@ -140,7 +140,7 @@ internal sealed class CompilationDispatcher : IDisposable
                 break;
 
             case OutboundMessage.MessageOneofCase.CompileResponse:
-                CompilationOperation.Validate(message.CompileResponse);
+                var result = CompilationOperation.Validate(message.CompileResponse);
                 if (!_compilations.TryRemove(packet.CompilationId, out CompilationOperation? completed) ||
                     !ReferenceEquals(completed, operation))
                 {
@@ -148,7 +148,7 @@ internal sealed class CompilationDispatcher : IDisposable
                         $"Compilation {packet.CompilationId} received a duplicate terminal response.");
                 }
 
-                operation.Complete(message.CompileResponse);
+                operation.Complete(message.CompileResponse, result);
                 break;
 
             case OutboundMessage.MessageOneofCase.CanonicalizeRequest:

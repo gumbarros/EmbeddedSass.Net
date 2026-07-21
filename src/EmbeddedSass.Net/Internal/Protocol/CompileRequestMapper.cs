@@ -82,20 +82,20 @@ internal static class CompileRequestMapper
         ArgumentNullException.ThrowIfNull(request.SilencedDeprecations);
         ArgumentNullException.ThrowIfNull(request.FutureDeprecations);
 
-        AddImporters(compileRequest, request.Importers.ToArray(), importerRegistry);
-        AddFunctions(compileRequest, request.Functions.ToArray(), functionRegistry);
-        AddLoadPaths(compileRequest, request.LoadPaths.ToArray());
+        AddImporters(compileRequest, request.Importers, importerRegistry);
+        AddFunctions(compileRequest, request.Functions, functionRegistry);
+        AddLoadPaths(compileRequest, request.LoadPaths);
         AddStrings(
             compileRequest.FatalDeprecation,
-            request.FatalDeprecations.ToArray(),
+            request.FatalDeprecations,
             nameof(request.FatalDeprecations));
         AddStrings(
             compileRequest.SilenceDeprecation,
-            request.SilencedDeprecations.ToArray(),
+            request.SilencedDeprecations,
             nameof(request.SilencedDeprecations));
         AddStrings(
             compileRequest.FutureDeprecation,
-            request.FutureDeprecations.ToArray(),
+            request.FutureDeprecations,
             nameof(request.FutureDeprecations));
 
         return new MappedCompileRequest(
@@ -107,7 +107,7 @@ internal static class CompileRequestMapper
 
     private static void AddFunctions(
         InboundMessage.Types.CompileRequest target,
-        ISassFunction[] functions,
+        IReadOnlyList<ISassFunction> functions,
         FunctionRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(functions);
@@ -121,7 +121,7 @@ internal static class CompileRequestMapper
 
     private static void AddImporters(
         InboundMessage.Types.CompileRequest target,
-        Importing.ISassImporter[] importers,
+        IReadOnlyList<Importing.ISassImporter> importers,
         ImporterRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(importers);
@@ -143,7 +143,7 @@ internal static class CompileRequestMapper
             case Importing.ISassContentImporter contentImporter:
                 mapped.ImporterId = id;
                 ArgumentNullException.ThrowIfNull(contentImporter.NonCanonicalSchemes);
-                foreach (string? scheme in contentImporter.NonCanonicalSchemes)
+                foreach (var scheme in contentImporter.NonCanonicalSchemes)
                 {
                     if (string.IsNullOrEmpty(scheme) || !scheme.All(IsSchemeCharacter))
                     {
@@ -176,7 +176,7 @@ internal static class CompileRequestMapper
 
     private static void AddLoadPaths(
         InboundMessage.Types.CompileRequest target,
-        string[] paths)
+        IReadOnlyList<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
         foreach (var path in paths)
@@ -191,7 +191,7 @@ internal static class CompileRequestMapper
 
     private static void AddStrings(
         Google.Protobuf.Collections.RepeatedField<string> target,
-        string[] values,
+        IReadOnlyList<string> values,
         string parameterName)
     {
         ArgumentNullException.ThrowIfNull(values, parameterName);

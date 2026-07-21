@@ -6,9 +6,9 @@ namespace EmbeddedSass.Internal.Protocol;
 
 internal sealed class SassValueMapper
 {
-    private readonly Dictionary<uint, SassArgumentListValue> _argumentLists = [];
-    private readonly HashSet<uint> _compilerFunctions = [];
-    private readonly HashSet<uint> _compilerMixins = [];
+    private Dictionary<uint, SassArgumentListValue>? _argumentLists;
+    private HashSet<uint>? _compilerFunctions;
+    private HashSet<uint>? _compilerMixins;
 
     public SassValue[] MapArguments(
         Google.Protobuf.Collections.RepeatedField<ProtocolValue> arguments)
@@ -22,9 +22,11 @@ internal sealed class SassValueMapper
         return mapped;
     }
 
-    public IEnumerable<uint> AccessedArgumentLists => _argumentLists
-        .Where(static pair => pair.Value.KeywordsAccessed && pair.Key != 0)
-        .Select(static pair => pair.Key);
+    public IEnumerable<uint> AccessedArgumentLists => _argumentLists is null
+        ? Enumerable.Empty<uint>()
+        : _argumentLists
+            .Where(static pair => pair.Value.KeywordsAccessed && pair.Key != 0)
+            .Select(static pair => pair.Key);
 
     public SassValue FromProtocol(ProtocolValue value)
     {
@@ -157,19 +159,19 @@ internal sealed class SassValueMapper
 
     private SassCompilerFunctionValue MapCompilerFunction(uint id)
     {
-        _compilerFunctions.Add(id);
+        (_compilerFunctions ??= []).Add(id);
         return new SassCompilerFunctionValue(id);
     }
 
     private SassCompilerMixinValue MapCompilerMixin(uint id)
     {
-        _compilerMixins.Add(id);
+        (_compilerMixins ??= []).Add(id);
         return new SassCompilerMixinValue(id);
     }
 
     private ProtocolValue MapCompilerFunction(SassCompilerFunctionValue function)
     {
-        if (!_compilerFunctions.Contains(function.Id))
+        if (_compilerFunctions is null || !_compilerFunctions.Contains(function.Id))
         {
             throw new ArgumentException(
                 "A compiler function may only be returned during the call in which it was received.");
@@ -183,7 +185,7 @@ internal sealed class SassValueMapper
 
     private ProtocolValue MapCompilerMixin(SassCompilerMixinValue mixin)
     {
-        if (!_compilerMixins.Contains(mixin.Id))
+        if (_compilerMixins is null || !_compilerMixins.Contains(mixin.Id))
         {
             throw new ArgumentException(
                 "A compiler mixin may only be returned during the call in which it was received.");
@@ -203,7 +205,7 @@ internal sealed class SassValueMapper
                 "The compiler used reserved argument-list ID 0.");
         }
 
-        if (_argumentLists.ContainsKey(list.Id))
+        if (_argumentLists?.ContainsKey(list.Id) == true)
         {
             throw new SassProtocolException(
                 $"The compiler sent duplicate argument-list ID {list.Id}.");
@@ -218,13 +220,14 @@ internal sealed class SassValueMapper
             MapValues(list.Contents),
             MapSeparator(list.Separator),
             keywords);
-        _argumentLists.Add(list.Id, mapped);
+        (_argumentLists ??= []).Add(list.Id, mapped);
         return mapped;
     }
 
     private ProtocolValue MapArgumentList(SassArgumentListValue list)
     {
-        if (!_argumentLists.TryGetValue(list.Id, out var original) ||
+        if (_argumentLists is null ||
+            !_argumentLists.TryGetValue(list.Id, out var original) ||
             !ReferenceEquals(original, list))
         {
             throw new ArgumentException(

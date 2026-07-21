@@ -4,8 +4,7 @@ namespace EmbeddedSass.Internal.Protocol;
 
 internal sealed class FunctionRegistry
 {
-    private readonly Dictionary<string, ISassFunction> _functions =
-        new(StringComparer.Ordinal);
+    private Dictionary<string, ISassFunction>? _functions;
 
     public void Register(ISassFunction function)
     {
@@ -13,6 +12,7 @@ internal sealed class FunctionRegistry
         ArgumentException.ThrowIfNullOrWhiteSpace(function.Signature);
 
         string name = GetName(function.Signature);
+        _functions ??= new Dictionary<string, ISassFunction>(StringComparer.Ordinal);
         if (!_functions.TryAdd(name, function))
         {
             throw new ArgumentException(
@@ -21,8 +21,16 @@ internal sealed class FunctionRegistry
         }
     }
 
-    public bool TryGet(string name, out ISassFunction? function) =>
-        _functions.TryGetValue(name, out function);
+    public bool TryGet(string name, out ISassFunction? function)
+    {
+        if (_functions is not null)
+        {
+            return _functions.TryGetValue(name, out function);
+        }
+
+        function = null;
+        return false;
+    }
 
     private static string GetName(string signature)
     {

@@ -14,17 +14,14 @@ internal sealed class SassCompilerConnection(
 
     public SassCompilerInfo? Info { get; private set; }
 
-    public async Task<SassCompileResult> CompileAsync(
+    public Task<SassCompileResult> CompileAsync(
         MappedCompileRequest request,
         CancellationToken cancellationToken)
     {
         var runtime = Volatile.Read(ref _runtime);
-        if (runtime is not { IsAvailable: true })
-        {
-            runtime = await GetRuntimeAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return await runtime.CompileAsync(request, cancellationToken).ConfigureAwait(false);
+        return runtime is { IsAvailable: true }
+            ? runtime.CompileAsync(request, cancellationToken)
+            : CompileSlowAsync(request, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -77,5 +74,13 @@ internal sealed class SassCompilerConnection(
         {
             _startGate.Release();
         }
+    }
+
+    private async Task<SassCompileResult> CompileSlowAsync(
+        MappedCompileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var runtime = await GetRuntimeAsync(cancellationToken).ConfigureAwait(false);
+        return await runtime.CompileAsync(request, cancellationToken).ConfigureAwait(false);
     }
 }
