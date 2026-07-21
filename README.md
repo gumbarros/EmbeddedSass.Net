@@ -16,7 +16,7 @@ Add the package to the project:
 
 ```xml
 <PackageReference Include="EmbeddedSass.Net"
-                  Version="1.1.0" />
+                  Version="1.2.0" />
 ```
 
 ```csharp
@@ -36,7 +36,7 @@ macOS, and Linux, removing the need to manage an external executable:
 
 ```xml
 <PackageReference Include="EmbeddedSass.Net.Compiler"
-                  Version="1.1.0" />
+                  Version="1.2.0" />
 ```
 
 ```csharp
@@ -54,9 +54,9 @@ the compiler executable. The bundled compiler is the simplest option:
 
 ```xml
 <PackageReference Include="EmbeddedSass.Net.DependencyInjection"
-                  Version="1.1.0" />
+                  Version="1.2.0" />
 <PackageReference Include="EmbeddedSass.Net.Compiler"
-                  Version="1.1.0" />
+                  Version="1.2.0" />
 ```
 
 Register Embedded Sass with an `IServiceCollection` and resolve
@@ -170,7 +170,7 @@ Add the package to the project:
 
 ```xml
 <PackageReference Include="EmbeddedSass.Net.MsBuild"
-                  Version="1.1.0"
+                  Version="1.2.0"
                   PrivateAssets="all" />
 ```
 
