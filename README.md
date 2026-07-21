@@ -108,6 +108,60 @@ var result = await compiler.CompileAsync(
     });
 ```
 
+## Custom functions
+
+.NET callbacks can be registered as custom global Sass functions. Arguments
+and return values use typed SassScript values, including numbers with units,
+strings, colors, lists, maps, booleans, null, calculations, and argument lists.
+
+```csharp
+using EmbeddedSass.Functions;
+using EmbeddedSass.Values;
+
+var cdnBaseUri = new Uri("https://cdn.example.com/assets/");
+var buildVersion = "2026.07.20";
+
+var assetUrl = new SassFunction(
+    "asset-url($path)",
+    (arguments, _) =>
+    {
+        var path = (SassStringValue)arguments[0];
+        var url = new Uri(cdnBaseUri, path.Text);
+
+        return ValueTask.FromResult<SassValue>(
+            new SassStringValue(
+                $"{url}?v={Uri.EscapeDataString(buildVersion)}"));
+    });
+
+var result = await compiler.CompileAsync(
+    new SassCompileRequest(
+        new SassStringInput("""
+            .hero {
+              background-image: url(asset-url("images/hero.webp"));
+            }
+            """))
+    {
+        Functions = [assetUrl]
+    });
+
+// .hero {
+//   background-image: url("https://cdn.example.com/assets/images/hero.webp?v=2026.07.20");
+// }
+Console.WriteLine(result.Css);
+```
+
+Function signatures use normal Sass declaration syntax and may contain
+optional or variadic arguments, for example
+`lookup($name, $fallback: null)` or `collect($values...)`. Accessing
+`SassArgumentListValue.Keywords` reports keyword access back to Dart Sass with
+the same semantics as `meta.keywords()`. An exception thrown by a callback is
+reported as a Sass compilation error.
+
+Implement `ISassFunction` directly when a class-based callback is preferable
+to the `SassFunction` delegate wrapper. Function and importer callbacks may run
+concurrently when the compiler processes concurrent requests, so callback
+implementations should be thread-safe.
+
 ## MSBuild integration
 
 `EmbeddedSass.Net.MsBuild` compiles Sass before ASP.NET Core resolves static web assets. The package includes the Sass compiler, so a Sass installation is not required.

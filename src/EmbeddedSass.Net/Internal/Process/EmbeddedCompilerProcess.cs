@@ -97,7 +97,7 @@ internal sealed class EmbeddedCompilerProcess : IAsyncDisposable
         ThrowIfUnavailable();
 
         var operation = await _dispatcher
-            .RegisterAsync(request.LogHandler, cancellationToken, request.Importers)
+            .RegisterAsync(request.LogHandler, cancellationToken, request.Importers, request.Functions)
             .ConfigureAwait(false);
 
         try

@@ -1,7 +1,9 @@
 using System.Threading.Channels;
 using EmbeddedSass.Diagnostics;
+using EmbeddedSass.Functions;
 using EmbeddedSass.Importing;
 using EmbeddedSass.Internal.Protocol;
+using EmbeddedSass.Values;
 using Sass.EmbeddedProtocol;
 
 namespace EmbeddedSass.Internal.Process;
@@ -14,6 +16,7 @@ internal sealed class CompilationOperation
     private readonly Action _release;
     private readonly Task _logWorker;
     private readonly ImporterRegistry _importers;
+    private readonly FunctionRegistry _functions;
     private readonly Func<uint, InboundMessage, Task> _sendAsync;
     private readonly Action<Exception> _fatalCallbackFailure;
     private readonly HashSet<CallbackKey> _pendingCallbacks = [];
@@ -23,6 +26,7 @@ internal sealed class CompilationOperation
     public CompilationOperation(uint compilationId,
         SassLogHandler? logHandler,
         ImporterRegistry importers,
+        FunctionRegistry functions,
         int maximumPendingLogs,
         Func<uint, InboundMessage, Task> sendAsync,
         Action<Exception> fatalCallbackFailure,
@@ -32,6 +36,7 @@ internal sealed class CompilationOperation
         CompilationId = compilationId;
         _logHandler = logHandler;
         _importers = importers;
+        _functions = functions;
         _connectionCancellation = connectionCancellation;
         _sendAsync = sendAsync;
         _fatalCallbackFailure = fatalCallbackFailure;
@@ -62,7 +67,7 @@ internal sealed class CompilationOperation
         var span = message.Span is null
             ? null
             : SourceSpanMapper.Map(message.Span);
-        
+
         var level = message.Type switch
         {
             LogEventType.Warning => SassLogLevel.Warning,
@@ -131,6 +136,29 @@ internal sealed class CompilationOperation
             OutboundMessage.MessageOneofCase.FileImportRequest,
             request.Id,
             () => FileImportAsync(request.Id, importer, context));
+    }
+
+    public void HandleFunctionCall(OutboundMessage.Types.FunctionCallRequest request)
+    {
+        if (request.IdentifierCase !=
+            OutboundMessage.Types.FunctionCallRequest.IdentifierOneofCase.Name)
+        {
+            throw new SassProtocolException(
+                $"The compiler requested unsupported custom-function identifier {request.IdentifierCase}.");
+        }
+
+        if (!_functions.TryGet(request.Name, out var function) || function is null)
+        {
+            throw new SassProtocolException(
+                $"The compiler requested unknown custom function '{request.Name}'.");
+        }
+
+        var mapper = new SassValueMapper();
+        var arguments = mapper.MapArguments(request.Arguments);
+        StartCallback(
+            OutboundMessage.MessageOneofCase.FunctionCallRequest,
+            request.Id,
+            () => FunctionCallAsync(request.Id, function, arguments, mapper));
     }
 
     public void Complete(OutboundMessage.Types.CompileResponse response)
@@ -353,6 +381,33 @@ internal sealed class CompilationOperation
             .ConfigureAwait(false);
     }
 
+    private async Task FunctionCallAsync(
+        uint requestId,
+        ISassFunction function,
+        IReadOnlyList<SassValue> arguments,
+        SassValueMapper mapper)
+    {
+        var response = new InboundMessage.Types.FunctionCallResponse { Id = requestId };
+        try
+        {
+            var result = await function
+                .InvokeAsync(arguments, _connectionCancellation)
+                .ConfigureAwait(false);
+            ArgumentNullException.ThrowIfNull(result);
+            response.Success = mapper.ToProtocol(result);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException ||
+                                           !_connectionCancellation.IsCancellationRequested)
+        {
+            response.Error = CallbackError(exception);
+        }
+
+        response.AccessedArgumentLists.AddRange(mapper.AccessedArgumentLists);
+
+        await SendCallbackAsync(new InboundMessage { FunctionCallResponse = response })
+            .ConfigureAwait(false);
+    }
+
     private void StartCallback(
         OutboundMessage.MessageOneofCase callbackType,
         uint requestId,
@@ -454,7 +509,7 @@ internal sealed class CompilationOperation
     {
         if (_logs == null || _logHandler == null)
             return;
-        
+
         await foreach (var logEvent in _logs.Reader.ReadAllAsync(_connectionCancellation)
                            .ConfigureAwait(false))
         {

@@ -1,5 +1,7 @@
+using EmbeddedSass.Functions;
 using EmbeddedSass.Importing;
 using EmbeddedSass.Internal.Protocol;
+using EmbeddedSass.Values;
 
 namespace EmbeddedSass.Tests;
 
@@ -80,6 +82,47 @@ public sealed class CompileRequestMapperTests
         var request = new SassCompileRequest(new UnsupportedInput());
 
         Assert.Throws<ArgumentException>(() => CompileRequestMapper.Map(request));
+    }
+
+    [Fact]
+    public void CustomFunctionsAreMappedInRegistrationOrder()
+    {
+        var first = new SassFunction(
+            "first($value)",
+            static (_, _) => ValueTask.FromResult<SassValue>(SassNullValue.Instance));
+        var second = new SassFunction(
+            "second()",
+            static (_, _) => ValueTask.FromResult<SassValue>(SassNullValue.Instance));
+
+        var mapped = CompileRequestMapper.Map(
+            new SassCompileRequest(new SassStringInput("a {}"))
+            {
+                Functions = [first, second]
+            });
+
+        Assert.Equal(["first($value)", "second()"], mapped.Message.CompileRequest.GlobalFunctions);
+        Assert.True(mapped.Functions.TryGet("first", out var registered));
+        Assert.Same(first, registered);
+    }
+
+    [Fact]
+    public void DuplicateCustomFunctionNamesAreRejected()
+    {
+        var request = new SassCompileRequest(new SassStringInput("a {}"))
+        {
+            Functions =
+            [
+                new SassFunction("convert($value)", ReturnNull),
+                new SassFunction("convert($value, $unit)", ReturnNull)
+            ]
+        };
+
+        Assert.Throws<ArgumentException>(() => CompileRequestMapper.Map(request));
+        return;
+
+        static ValueTask<SassValue> ReturnNull(
+            IReadOnlyList<SassValue> arguments,
+            CancellationToken cancellationToken) => ValueTask.FromResult<SassValue>(SassNullValue.Instance);
     }
 
     private sealed record UnsupportedInput : SassInput;
