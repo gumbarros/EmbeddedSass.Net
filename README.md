@@ -257,9 +257,9 @@ See the [EmbeddedSass.Net.Sample.AspNetCore](https://github.com/gumbarros/Embedd
 
 | Compiler                                                                        |        Mean | Standard deviation | Ratio |   Allocated |
 | ------------------------------------------------------------------------------- | ----------: | -----------------: | ----: | ----------: |
-| EmbeddedSass.Net                |    824.0 us |           111.6 us |  1.01 |     7.98 KB |
-| [AspNetCore.SassCompiler](https://github.com/koenvzeijl/AspNetCore.SassCompiler) |  8,111.4 us |           197.2 us |  9.96 |   104.54 KB |
-| [DartSassHost (Jint)](https://github.com/Taritsyn/DartSassHost)                 | 65,665.3 us |         3,392.1 us | 80.62 | 4,203.17 KB |
+| EmbeddedSass.Net                |    688.4 us |           153.8 us |  1.03 |     7.70 KB |
+| [AspNetCore.SassCompiler](https://github.com/koenvzeijl/AspNetCore.SassCompiler) |  8,360.0 us |           204.7 us | 12.52 |   104.81 KB |
+| [DartSassHost (Jint)](https://github.com/Taritsyn/DartSassHost)                 | 60,094.8 us |         7,904.3 us | 89.98 | 4,144.15 KB |
 
 
 EmbeddedSass.Net starts an Embedded Sass process and reuses it across compilations. DartSassHost
