@@ -23,7 +23,7 @@ internal sealed class SassValueMapper
     }
 
     public IEnumerable<uint> AccessedArgumentLists => _argumentLists is null
-        ? Enumerable.Empty<uint>()
+        ? []
         : _argumentLists
             .Where(static pair => pair.Value.KeywordsAccessed && pair.Key != 0)
             .Select(static pair => pair.Key);
