@@ -276,7 +276,7 @@ internal sealed class CompilationOperation
         return new SassCompileResult(
             response.Success.Css,
             sourceMap.Length == 0 ? null : sourceMap,
-            Array.AsReadOnly(loadedUrls));
+            loadedUrls);
     }
 
     private async Task CanonicalizeAsync(
@@ -384,7 +384,7 @@ internal sealed class CompilationOperation
     private async Task FunctionCallAsync(
         uint requestId,
         ISassFunction function,
-        IReadOnlyList<SassValue> arguments,
+        SassValue[] arguments,
         SassValueMapper mapper)
     {
         var response = new InboundMessage.Types.FunctionCallResponse { Id = requestId };

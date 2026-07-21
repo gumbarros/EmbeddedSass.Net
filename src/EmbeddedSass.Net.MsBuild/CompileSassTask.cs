@@ -173,6 +173,6 @@ public sealed class CompileSassTask : Microsoft.Build.Utilities.Task, ICancelabl
         return false;
     }
 
-    private static IReadOnlyList<string> SplitList(string value) =>
+    private static string[] SplitList(string value) =>
         value.Split([';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

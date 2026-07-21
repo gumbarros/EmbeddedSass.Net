@@ -8,7 +8,7 @@ public sealed class SassFunction : ISassFunction
     private readonly SassFunctionHandler _handler;
 
     public string Signature { get; }
-    
+
     public SassFunction(string signature, SassFunctionHandler handler)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(signature);

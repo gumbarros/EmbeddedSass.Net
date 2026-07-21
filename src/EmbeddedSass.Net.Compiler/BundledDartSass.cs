@@ -24,22 +24,31 @@ public static class BundledDartSass
 
         options.CompilerPath = executable;
         options.CompilerArguments = [snapshot];
-        
+
         return options;
     }
 
     private static string GetRuntimeIdentifier()
     {
-        string os = OperatingSystem.IsWindows()
-            ? "win"
-            : OperatingSystem.IsMacOS()
-                ? "osx"
-                : OperatingSystem.IsLinux()
-                    ? "linux"
-                    : throw new PlatformNotSupportedException(
-                        "The bundled compiler supports Windows, macOS, and Linux.");
+        string os;
+        if (OperatingSystem.IsWindows())
+        {
+            os = "win";
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            os = "osx";
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            os = "linux";
+        }
+        else
+        {
+            throw new PlatformNotSupportedException("The bundled compiler supports Windows, macOS, and Linux.");
+        }
 
-        string architecture = RuntimeInformation.ProcessArchitecture switch
+        var architecture = RuntimeInformation.ProcessArchitecture switch
         {
             Architecture.X64 => "x64",
             Architecture.Arm64 => "arm64",

@@ -149,7 +149,9 @@ public sealed class CompilationDispatcherTests
             return Task.CompletedTask;
         });
         var functions = new FunctionRegistry();
+#pragma warning disable RCS1163
         functions.Register(new SassFunction("inspect($args...)", (arguments, cancellationToken) =>
+#pragma warning restore RCS1163
         {
             var argumentList = Assert.IsType<SassArgumentListValue>(arguments[0]);
             _ = argumentList.Keywords;

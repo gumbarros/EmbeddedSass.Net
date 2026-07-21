@@ -135,8 +135,8 @@ internal static class PacketCodec
         int payloadLength,
         int maximumPacketBytes)
     {
-        int compilationIdLength = GetVarintLength(compilationId);
-        long packetLength = (long)compilationIdLength + payloadLength;
+        var compilationIdLength = GetVarintLength(compilationId);
+        var packetLength = (long)compilationIdLength + payloadLength;
         if (packetLength > maximumPacketBytes)
         {
             throw new SassProtocolException(
@@ -144,7 +144,7 @@ internal static class PacketCodec
         }
 
         Span<byte> prefix = stackalloc byte[MaximumVarintBytes * 2];
-        int prefixLength = WriteUInt32(prefix, checked((uint)packetLength));
+        var prefixLength = WriteUInt32(prefix, checked((uint)packetLength));
         prefixLength += WriteUInt32(prefix[prefixLength..], compilationId);
 
         writer.Write(prefix[..prefixLength]);
@@ -154,7 +154,7 @@ internal static class PacketCodec
         PipeWriter writer,
         CancellationToken cancellationToken)
     {
-        FlushResult result = await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        var result = await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
             throw new OperationCanceledException(cancellationToken);
@@ -166,7 +166,7 @@ internal static class PacketCodec
         }
     }
 
-    public static int WriteUInt32(Span<byte> destination, uint value)
+    private static int WriteUInt32(Span<byte> destination, uint value)
     {
         int index = 0;
         while (value >= 0x80)

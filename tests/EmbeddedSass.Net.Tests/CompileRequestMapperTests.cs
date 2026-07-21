@@ -118,11 +118,10 @@ public sealed class CompileRequestMapperTests
         };
 
         Assert.Throws<ArgumentException>(() => CompileRequestMapper.Map(request));
-        return;
 
         static ValueTask<SassValue> ReturnNull(
-            IReadOnlyList<SassValue> arguments,
-            CancellationToken cancellationToken) => ValueTask.FromResult<SassValue>(SassNullValue.Instance);
+            IReadOnlyList<SassValue> _,
+            CancellationToken __) => ValueTask.FromResult<SassValue>(SassNullValue.Instance);
     }
 
     private sealed record UnsupportedInput : SassInput;

@@ -3,25 +3,23 @@ namespace EmbeddedSass.Values;
 /// <summary>Represents a variable argument list supplied to a custom function.</summary>
 public sealed class SassArgumentListValue : SassValue
 {
-    private readonly IReadOnlyDictionary<string, SassValue> _keywords;
-
     internal SassArgumentListValue(
         uint id,
-        IReadOnlyList<SassValue> contents,
+        SassValue[] contents,
         SassListSeparator separator,
-        IReadOnlyDictionary<string, SassValue> keywords)
+        Dictionary<string, SassValue> keywords)
     {
         Id = id;
         Contents = contents;
         Separator = separator;
-        _keywords = keywords;
+        RawKeywords = keywords;
     }
 
     internal uint Id { get; }
 
     internal bool KeywordsAccessed { get; private set; }
 
-    internal IReadOnlyDictionary<string, SassValue> RawKeywords => _keywords;
+    internal Dictionary<string, SassValue> RawKeywords { get; }
 
     public IReadOnlyList<SassValue> Contents { get; }
 
@@ -36,7 +34,7 @@ public sealed class SassArgumentListValue : SassValue
         get
         {
             KeywordsAccessed = true;
-            return _keywords;
+            return RawKeywords;
         }
     }
 }

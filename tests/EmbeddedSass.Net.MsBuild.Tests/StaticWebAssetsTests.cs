@@ -48,7 +48,7 @@ public sealed class StaticWebAssetsTests
         ProcessResult result = await RunDotNetPackAsync(directory.Path);
 
         Assert.True(result.ExitCode == 0, result.Output);
-        using ZipArchive package = ZipFile.OpenRead(directory.File("packages/TestRcl.1.0.0.nupkg"));
+        await using ZipArchive package = await ZipFile.OpenReadAsync(directory.File("packages/TestRcl.1.0.0.nupkg"));
         Assert.Contains(package.Entries, entry => entry.FullName == "staticwebassets/css/site.css");
     }
 

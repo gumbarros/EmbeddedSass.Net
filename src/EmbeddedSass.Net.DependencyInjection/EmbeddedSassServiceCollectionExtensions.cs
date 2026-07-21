@@ -15,7 +15,7 @@ public static class EmbeddedSassServiceCollectionExtensions
 
             services.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IValidateOptions<SassCompilerOptions>, SassCompilerOptionsValidator>());
-            
+
             services.AddOptions<SassCompilerOptions>()
                 .Configure(configure)
                 .ValidateOnStart();

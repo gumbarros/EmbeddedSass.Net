@@ -13,7 +13,7 @@ public sealed class SassLogEvent
     public string? StackTrace { get; }
 
     public string? DeprecationId { get; }
-    
+
     public SassLogEvent(
         SassLogLevel level,
         string message,

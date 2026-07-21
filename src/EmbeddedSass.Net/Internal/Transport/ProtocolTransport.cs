@@ -45,7 +45,7 @@ internal sealed class ProtocolTransport
     {
         while (true)
         {
-            bool packetRead = await PacketCodec.ReadAsync(
+            var packetRead = await PacketCodec.ReadAsync(
                 _reader,
                 _maximumPacketBytes,
                 dispatch,

@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using EmbeddedSass.Compiler;
 using EmbeddedSass.Diagnostics;
 using EmbeddedSass.Functions;
@@ -259,10 +258,6 @@ public sealed class RealCompilerTests
         }.UseBundledDartSass();
         return new SassCompiler(options);
     }
-
-    private static bool IsSupportedPlatform() =>
-        (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()) &&
-        RuntimeInformation.ProcessArchitecture is Architecture.X64 or Architecture.Arm64;
 
     private static string CreateTemporaryDirectory()
     {

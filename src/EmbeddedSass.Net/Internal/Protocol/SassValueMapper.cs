@@ -10,7 +10,7 @@ internal sealed class SassValueMapper
     private readonly HashSet<uint> _compilerFunctions = [];
     private readonly HashSet<uint> _compilerMixins = [];
 
-    public IReadOnlyList<SassValue> MapArguments(
+    public SassValue[] MapArguments(
         Google.Protobuf.Collections.RepeatedField<ProtocolValue> arguments)
     {
         var mapped = new SassValue[arguments.Count];
@@ -19,7 +19,7 @@ internal sealed class SassValueMapper
             mapped[index] = FromProtocol(arguments[index]);
         }
 
-        return Array.AsReadOnly(mapped);
+        return mapped;
     }
 
     public IEnumerable<uint> AccessedArgumentLists => _argumentLists
@@ -117,7 +117,7 @@ internal sealed class SassValueMapper
         };
     }
 
-    private SassNumberValue MapNumber(ProtocolValue.Types.Number number) =>
+    private static SassNumberValue MapNumber(ProtocolValue.Types.Number number) =>
         new(number.Value)
         {
             NumeratorUnits = Array.AsReadOnly(number.Numerators.ToArray()),
@@ -315,12 +315,11 @@ internal sealed class SassValueMapper
         };
     }
 
-    private IReadOnlyList<SassValue> MapValues(
+    private SassValue[] MapValues(
         IEnumerable<ProtocolValue> values) =>
         values.Select(FromProtocol).ToArray();
 
-    private IEnumerable<ProtocolValue> MapValues(
-        IReadOnlyList<SassValue> values)
+    private IEnumerable<ProtocolValue> MapValues(IReadOnlyList<SassValue> values)
     {
         ArgumentNullException.ThrowIfNull(values);
         return values.Select(ToProtocol);

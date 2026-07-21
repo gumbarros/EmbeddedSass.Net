@@ -4,7 +4,7 @@ internal sealed class CompilerOptionsSnapshot
 {
     private CompilerOptionsSnapshot(
         string compilerPath,
-        IReadOnlyList<string> compilerArguments,
+        string[] compilerArguments,
         int maxConcurrentCompilations,
         int maxPacketBytes,
         int maxPendingWrites,
@@ -26,7 +26,7 @@ internal sealed class CompilerOptionsSnapshot
 
     public string CompilerPath { get; }
 
-    public IReadOnlyList<string> CompilerArguments { get; }
+    public string[] CompilerArguments { get; }
 
     public int MaxConcurrentCompilations { get; }
 

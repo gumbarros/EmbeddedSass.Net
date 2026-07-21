@@ -75,12 +75,28 @@ internal static class CompileRequestMapper
                     nameof(request));
         }
 
-        AddImporters(compileRequest, request.Importers, importerRegistry);
-        AddFunctions(compileRequest, request.Functions, functionRegistry);
-        AddLoadPaths(compileRequest, request.LoadPaths);
-        AddStrings(compileRequest.FatalDeprecation, request.FatalDeprecations, nameof(request.FatalDeprecations));
-        AddStrings(compileRequest.SilenceDeprecation, request.SilencedDeprecations, nameof(request.SilencedDeprecations));
-        AddStrings(compileRequest.FutureDeprecation, request.FutureDeprecations, nameof(request.FutureDeprecations));
+        ArgumentNullException.ThrowIfNull(request.Importers);
+        ArgumentNullException.ThrowIfNull(request.Functions);
+        ArgumentNullException.ThrowIfNull(request.LoadPaths);
+        ArgumentNullException.ThrowIfNull(request.FatalDeprecations);
+        ArgumentNullException.ThrowIfNull(request.SilencedDeprecations);
+        ArgumentNullException.ThrowIfNull(request.FutureDeprecations);
+
+        AddImporters(compileRequest, request.Importers.ToArray(), importerRegistry);
+        AddFunctions(compileRequest, request.Functions.ToArray(), functionRegistry);
+        AddLoadPaths(compileRequest, request.LoadPaths.ToArray());
+        AddStrings(
+            compileRequest.FatalDeprecation,
+            request.FatalDeprecations.ToArray(),
+            nameof(request.FatalDeprecations));
+        AddStrings(
+            compileRequest.SilenceDeprecation,
+            request.SilencedDeprecations.ToArray(),
+            nameof(request.SilencedDeprecations));
+        AddStrings(
+            compileRequest.FutureDeprecation,
+            request.FutureDeprecations.ToArray(),
+            nameof(request.FutureDeprecations));
 
         return new MappedCompileRequest(
             new InboundMessage { CompileRequest = compileRequest },
@@ -91,7 +107,7 @@ internal static class CompileRequestMapper
 
     private static void AddFunctions(
         InboundMessage.Types.CompileRequest target,
-        IReadOnlyList<ISassFunction> functions,
+        ISassFunction[] functions,
         FunctionRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(functions);
@@ -105,7 +121,7 @@ internal static class CompileRequestMapper
 
     private static void AddImporters(
         InboundMessage.Types.CompileRequest target,
-        IReadOnlyList<Importing.ISassImporter> importers,
+        Importing.ISassImporter[] importers,
         ImporterRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(importers);
@@ -160,7 +176,7 @@ internal static class CompileRequestMapper
 
     private static void AddLoadPaths(
         InboundMessage.Types.CompileRequest target,
-        IReadOnlyList<string> paths)
+        string[] paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
         foreach (var path in paths)
@@ -175,7 +191,7 @@ internal static class CompileRequestMapper
 
     private static void AddStrings(
         Google.Protobuf.Collections.RepeatedField<string> target,
-        IReadOnlyList<string> values,
+        string[] values,
         string parameterName)
     {
         ArgumentNullException.ThrowIfNull(values, parameterName);

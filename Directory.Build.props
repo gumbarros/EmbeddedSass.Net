@@ -23,12 +23,13 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableSourceControlManagerQueries Condition="!Exists('$(MSBuildThisFileDirectory).git/HEAD')">false</EnableSourceControlManagerQueries>
     <EnableSourceLink Condition="!Exists('$(MSBuildThisFileDirectory).git/HEAD')">false</EnableSourceLink>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+      <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(IsPackable)' == 'true'">

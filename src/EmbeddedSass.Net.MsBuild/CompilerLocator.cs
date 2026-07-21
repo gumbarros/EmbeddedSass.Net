@@ -7,7 +7,7 @@ internal static class CompilerLocator
     public static SassCompilerOptions CreateOptions()
     {
         var operatingSystem = GetOperatingSystem();
-        
+
         var architecture = RuntimeInformation.ProcessArchitecture switch
         {
             Architecture.X64 => "x64",
@@ -56,17 +56,14 @@ internal static class CompilerLocator
 
     private static string GetOperatingSystem()
     {
-        string operatingSystem;
-
         if (OperatingSystem.IsWindows())
-            operatingSystem = "win";
-        else if (OperatingSystem.IsMacOS())
-            operatingSystem = "osx";
-        else if (OperatingSystem.IsLinux())
-            operatingSystem = "linux";
-        else
-            throw new PlatformNotSupportedException(
-                "EmbeddedSass.Net.MsBuild supports Windows, macOS, and Linux.");
-        return operatingSystem;
+            return "win";
+        if (OperatingSystem.IsMacOS())
+            return "osx";
+        if (OperatingSystem.IsLinux())
+            return "linux";
+
+        throw new PlatformNotSupportedException(
+            "EmbeddedSass.Net.MsBuild supports Windows, macOS, and Linux.");
     }
 }

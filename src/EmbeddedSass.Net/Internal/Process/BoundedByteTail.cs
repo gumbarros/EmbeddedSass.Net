@@ -23,7 +23,7 @@ internal sealed class BoundedByteTail
             {
                 return;
             }
-            
+
             if (bytes.Length >= _buffer.Length)
             {
                 bytes[^_buffer.Length..].CopyTo(_buffer);
