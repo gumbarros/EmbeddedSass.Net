@@ -413,12 +413,10 @@ internal sealed class CompilationOperation
             }
         }
 
-        _ = ObserveCallbackAsync(state, key, callback);
+        _ = ObserveCallbackAsync(callback);
     }
 
     private async Task ObserveCallbackAsync(
-        CallbackState state,
-        CallbackKey key,
         Func<Task> callback)
     {
         try
@@ -432,17 +430,34 @@ internal sealed class CompilationOperation
         {
             _fatalCallbackFailure(exception);
         }
-        finally
-        {
-            lock (state.Gate)
-            {
-                state.PendingCallbacks.Remove(key);
-            }
-        }
     }
 
-    private Task SendCallbackAsync(InboundMessage message) =>
-        _sendAsync(CompilationId, message);
+    private Task SendCallbackAsync(InboundMessage message)
+    {
+        var key = message.MessageCase switch
+        {
+            InboundMessage.MessageOneofCase.CanonicalizeResponse =>
+                new CallbackKey(OutboundMessage.MessageOneofCase.CanonicalizeRequest, message.CanonicalizeResponse.Id),
+            InboundMessage.MessageOneofCase.ImportResponse =>
+                new CallbackKey(OutboundMessage.MessageOneofCase.ImportRequest, message.ImportResponse.Id),
+            InboundMessage.MessageOneofCase.FileImportResponse =>
+                new CallbackKey(OutboundMessage.MessageOneofCase.FileImportRequest, message.FileImportResponse.Id),
+            InboundMessage.MessageOneofCase.FunctionCallResponse =>
+                new CallbackKey(OutboundMessage.MessageOneofCase.FunctionCallRequest, message.FunctionCallResponse.Id),
+            _ => throw new SassProtocolException($"Unexpected callback response {message.MessageCase}.")
+        };
+        var state = _callbackState ?? throw new SassProtocolException("No callback was registered.");
+
+        // The compiler may reuse this ID as soon as it receives our response, before
+        // the asynchronous sender resumes. Retire it before publishing the response.
+        // Do not remove it again in a continuation: a new callback may already own it.
+        lock (state.Gate)
+        {
+            state.PendingCallbacks.Remove(key);
+        }
+
+        return _sendAsync(CompilationId, message);
+    }
 
     private TImporter GetImporter<TImporter>(uint importerId, string callbackName)
         where TImporter : class, ISassImporter
